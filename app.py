@@ -19,7 +19,9 @@ last_update = ''  # last update
 plotly_js_minified = ['https://cdn.plot.ly/plotly-basic-latest.min.js']
 app = dash.Dash(__name__, external_scripts=plotly_js_minified,
                 meta_tags=[{'name': 'viewport',
-                            'content': 'width=device-width, initial-scale=0.8, maximum-scale=1.2, minimum-scale=0.5'}])
+                            'content': 'width=device-width, initial-scale=0.8, maximum-scale=1.2, minimum-scale=0.5'}],
+                requests_pathname_prefix='/vaccine/',
+                routes_pathname_prefix='/vaccine/')
 app.title = 'Dashboard Vaccini'
 server = app.server
 
