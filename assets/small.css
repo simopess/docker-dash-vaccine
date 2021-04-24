@@ -1,0 +1,14 @@
+.table {
+	width: 100%;
+    text-align:center;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+.bar {
+	width: 100%;
+    margin: auto;
+}
+.container-1, .container-2, .container-3, .container-4{
+    width: 100%;
+    float:left;
+}
