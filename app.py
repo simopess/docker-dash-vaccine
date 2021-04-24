@@ -15,6 +15,7 @@ fascia_anagrafica = 'https://raw.githubusercontent.com/italia/covid19-opendata-v
 decessicontagi = 'https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-andamento-nazionale/dpc-covid19-ita-andamento-nazionale.csv'
 
 last_update = ''  # last update
+pandas.options.mode.chained_assignment = None  # default='warn'
 
 plotly_js_minified = ['https://cdn.plot.ly/plotly-basic-latest.min.js']
 app = dash.Dash(__name__, external_scripts=plotly_js_minified,
@@ -71,6 +72,11 @@ def refresh_data():
 
     # deaths
     ddc['nuovi_decessi'] = ddc.deceduti.diff().fillna(ddc.deceduti)
+    ddc['nuovi_decessi'].iloc[121] = 31  # error -31
+    # avg
+    ddc['nuovi_decessi_avg'] = ddc['nuovi_decessi'].rolling(30).mean()
+    ddc['nuovi_positivi_avg'] = ddc['nuovi_positivi'].rolling(30).mean()
+
 
 # total vaccine status
 def vaccine_update():
@@ -87,18 +93,35 @@ def vaccine_update():
     primadose = round((int(tot_prima)/60360000)*100, 2)
     secondadose = round((int(tot_seconda)/60360000)*100, 2)
     return html.Div([
-        html.Div(
+        html.Div([
             html.Table([
                 # Header
                 html.Tr([
-                    html.Td('Prima dose', style={'font-size': '14px'}), html.Td('Persone Vaccinate', style={'font-size': '14px'})
-                ])
-            ]+[
+                    html.Td('Prima dose', style={'font-size': '14px'}),
+                ]),
                 # Body
                 html.Tr([
                     html.Td(
                         html.H1(tot_prima_dose, style={'color': '#F5C05F', 'font-size': '45px'})
                     ),
+                ]),
+                # Percentage
+                html.Tr([
+                    html.Td(html.B(
+                        '' + str(primadose) + '% della popolazione',
+                        style={'color': '#F5C05F', 'font-size': '14px'}
+                    ))
+                ])
+            ], className='table')
+        ], className='container-2'),
+        html.Div([
+            html.Table([
+                # Header
+                html.Tr([
+                    html.Td('Persone Vaccinate', style={'font-size': '14px'})
+                ]),
+                # Body
+                html.Tr([
                     html.Td(
                         html.H1(tot_seconda_dose, style={'color': '#E83A8E', 'font-size': '45px'})
                     )
@@ -106,38 +129,37 @@ def vaccine_update():
                 # Percentage
                 html.Tr([
                     html.Td(html.B(
-                        ''+str(primadose)+'% della popolazione', style={'color': '#F5C05F', 'font-size': '14px'}
-                    )),
-                    html.Td(html.B(
                         ''+str(secondadose)+'% della popolazione', style={'color': '#E83A8E', 'font-size': '14px'}
                     ))
                 ])
-            ], id='vaccine_table')
-        )
-    ])
+            ], className='table')
+        ], className='container-2')
+    ], className='container-1')
 
 # vaccine horozzonatal bar
 def vaccine_update_bar():
     refresh_data()
     return html.Div([
-        dcc.Graph(
-            figure={
-                'data': [go.Bar(x=[60360000, int(tot_prima), int(tot_seconda)],
-                                y=['Popolazione', 'Prima dose', 'Vaccinati'],
-                                orientation='h',
-                                marker_color=['#6181E8', '#F5C05F', '#E83A8E'])
-                         ],
-                'layout': {
-                    'height': 240,  # px
-                    'xaxis': dict(
-                        rangeslider=dict(visible=False),
-                        type=''
-                    )
+        html.Div([
+            dcc.Graph(
+                figure={
+                    'data': [go.Bar(x=[60360000, int(tot_prima), int(tot_seconda)],
+                                    y=['Popolazione', 'Prima dose', 'Vaccinati'],
+                                    orientation='h',
+                                    marker_color=['#6181E8', '#F5C05F', '#E83A8E'])
+                             ],
+                    'layout': {
+                        'height': 240,  # px
+                        'xaxis': dict(
+                            rangeslider=dict(visible=False),
+                            type=''
+                        )
+                    },
                 },
-            },
-            config=chart_config
-        )
-    ], id='vaccine_bar')
+                config=chart_config
+            )
+        ], className='bar')
+    ], className='container-1')
 
 # daily vaccine
 def vaccine_daily():
@@ -182,49 +204,95 @@ def vaccine_daily():
         ds_dosi_totali = '{:,}'.format(int(ds_dosi_totali)).replace(',', '.')
 
     return html.Div([
-        html.Div(
+        # vaccine
+        html.Div([
             html.Table([
                 # Header
                 html.Tr([
                     html.Td('Vaccini Consegnati', style={'font-size': '14px'}),
-                    html.Td('Dosi Somministrate', style={'font-size': '14px'}),
-                    html.Td('Prime Dosi', style={'font-size': '14px'}),
-                    html.Td('Persone Vaccinate', style={'font-size': '14px'})
-                ])
-            ]+[
+                ]),
                 # Body
                 html.Tr([
                     html.Td(
                         html.H1('+ '+str(dc_dosi_consegnate)+'', style={'color': '#29CF8A', 'font-size': '45px'})
-                    ),
-                    html.Td(
-                        html.H1('+ '+str(ds_dosi_totali)+'', style={'color': '#376FDB', 'font-size': '45px'})
-                    ),
-                    html.Td(
-                        html.H1('+ '+str(ds_prime_dosi)+'', style={'color': '#F5C05F', 'font-size': '45px'})
-                    ),
-                    html.Td(
-                        html.H1('+ '+str(ds_seconde_dosi)+'', style={'color': '#E83A8E', 'font-size': '45px'})
                     )
                 ]),
                 # Yesterday
                 html.Tr([
                     html.Td(html.B(
                         'Totali: '+str(tot_consegne), style={'color': '#29CF8A', 'font-size': '14px'}
-                    )),
+                    ))
+                ])
+            ], className='table')
+        ], className='container-4'),
+
+        # doses
+        html.Div([
+            html.Table([
+                # Header
+                html.Tr([
+                    html.Td('Dosi Somministrate', style={'font-size': '14px'}),
+                ]),
+                # Body
+                html.Tr([
+                    html.Td(
+                        html.H1('+ ' + str(ds_dosi_totali) + '', style={'color': '#376FDB', 'font-size': '45px'})
+                    )
+                ]),
+                # Yesterday
+                html.Tr([
                     html.Td(html.B(
-                        'Totali: '+str(tot_vaccini), style={'color': '#376FDB', 'font-size': '14px'}
-                    )),
+                        'Totali: ' + str(tot_vaccini), style={'color': '#376FDB', 'font-size': '14px'}
+                    ))
+                ])
+            ], className='table')
+        ], className='container-4'),
+
+        # first doses
+        html.Div([
+            html.Table([
+                # Header
+                html.Tr([
+                    html.Td('Prime Dosi', style={'font-size': '14px'}),
+                ]),
+                # Body
+                html.Tr([
+                    html.Td(
+                        html.H1('+ ' + str(ds_prime_dosi) + '', style={'color': '#F5C05F', 'font-size': '45px'})
+                    )
+                ]),
+                # Yesterday
+                html.Tr([
                     html.Td(html.B(
                         'Totali: ' + str(tot_prima_dose), style={'color': '#F5C05F', 'font-size': '14px'}
-                    )),
+                    ))
+                ])
+            ], className='table')
+        ], className='container-4'),
+
+        # vaccine
+        html.Div([
+            html.Table([
+                # Header
+                html.Tr([
+                    html.Td('Persone Vaccinate', style={'font-size': '14px'})
+                ]),
+                # Body
+                html.Tr([
+                    html.Td(
+                        html.H1('+ ' + str(ds_seconde_dosi) + '',
+                                style={'color': '#E83A8E', 'font-size': '45px'})
+                    )
+                ]),
+                # Yesterday
+                html.Tr([
                     html.Td(html.B(
                         'Totali: ' + str(tot_seconda_dose), style={'color': '#E83A8E', 'font-size': '14px'}
                     ))
                 ])
-            ], id='vaccine_table_daily')
-        )
-    ])
+            ], className='table')
+        ], className='container-4')
+    ], className='container-1')
 
 def vaccine_and_dosi_graph():
     refresh_data()
@@ -238,87 +306,80 @@ def vaccine_and_dosi_graph():
     ds_janssen = ds.loc[ds['fornitore'] == 'Janssen'].groupby('data_somministrazione').agg(
         {'prima_dose': 'sum', 'seconda_dose': 'sum'}).reset_index()
     return html.Div([
-        html.Div(
-            html.Table([
-                html.Tr([
-                    html.Td(
-                        dbc.Container([
-                            dbc.Row(
-                                dbc.Col(
-                                    dcc.Graph(
-                                        figure={
-                                            'data': [
-                                                {'x': ds_pfizer['data_somministrazione'],
-                                                 'y': ds_pfizer['prima_dose'] + ds_pfizer['seconda_dose'],
-                                                 'type': 'bar',
-                                                 'name': 'Pfizer',
-                                                 'marker': dict(color='#95A9DE')},
-                                                {'x': ds_moderna['data_somministrazione'],
-                                                 'y': ds_moderna['prima_dose'] + ds_moderna['seconda_dose'],
-                                                 'type': 'bar',
-                                                 'name': 'Moderna',
-                                                 'marker': dict(color='#395499')},
-                                                {'x': ds_astra['data_somministrazione'],
-                                                 'y': ds_astra['prima_dose'] + ds_astra['seconda_dose'], 'type': 'bar',
-                                                 'name': 'AstraZeneca',
-                                                 'marker': dict(color='#537BE0')},
-                                                {'x': ds_janssen['data_somministrazione'],
-                                                 'y': ds_janssen['prima_dose'] + ds_janssen['seconda_dose'],
-                                                 'type': 'bar',
-                                                 'name': 'Janssen',
-                                                 'marker': dict(color='#243561')},
-                                            ],
-                                            'layout': {
-                                                'barmode': 'stack',
-                                                'xaxis': dict(
-                                                    rangeselector=dict(buttons=slider_button),
-                                                    rangeslider=dict(visible=False),
-                                                    type='date'
-                                                )
-                                            }
-                                        },
-                                        config=chart_config
+        html.Div([
+            dbc.Container([
+                dbc.Row(
+                    dbc.Col(
+                        dcc.Graph(
+                            figure={
+                                'data': [
+                                    {'x': ds_pfizer['data_somministrazione'],
+                                     'y': ds_pfizer['prima_dose'] + ds_pfizer['seconda_dose'],
+                                     'type': 'bar',
+                                     'name': 'Pfizer',
+                                     'marker': dict(color='#95A9DE')},
+                                    {'x': ds_moderna['data_somministrazione'],
+                                     'y': ds_moderna['prima_dose'] + ds_moderna['seconda_dose'],
+                                     'type': 'bar',
+                                     'name': 'Moderna',
+                                     'marker': dict(color='#395499')},
+                                    {'x': ds_astra['data_somministrazione'],
+                                     'y': ds_astra['prima_dose'] + ds_astra['seconda_dose'], 'type': 'bar',
+                                     'name': 'AstraZeneca',
+                                     'marker': dict(color='#537BE0')},
+                                    {'x': ds_janssen['data_somministrazione'],
+                                     'y': ds_janssen['prima_dose'] + ds_janssen['seconda_dose'],
+                                     'type': 'bar',
+                                     'name': 'Janssen',
+                                     'marker': dict(color='#243561')},
+                                ],
+                                'layout': {
+                                    'barmode': 'stack',
+                                    'xaxis': dict(
+                                        rangeselector=dict(buttons=slider_button),
+                                        rangeslider=dict(visible=False),
+                                        type='date'
                                     )
-                                )
-                            )
-                        ])
-                    ),
-                    # sencond table
-                    html.Td(
-                        dbc.Container([
-                            dbc.Row(
-                                dbc.Col(
-                                    dcc.Graph(
-                                        figure={
-                                            'data': [
-                                                {'x': ds_dosi['data_somministrazione'], 'y': ds_dosi['prima_dose'],
-                                                 'type': 'bar',
-                                                 'name': 'Prima Dose',
-                                                 'marker': dict(color='#F5C05F')},
-                                                {'x': ds_dosi['data_somministrazione'], 'y': ds_dosi['seconda_dose'],
-                                                 'type': 'bar',
-                                                 'name': 'Seconda Dose',
-                                                 'marker': dict(color='#78F5B3')},
-                                            ],
-                                            'layout': {
-                                                'barmode': 'stack',
-                                                'xaxis': dict(
-                                                    rangeselector=dict(buttons=slider_button),
-                                                    rangeslider=dict(visible=False),
-                                                    type='date'
-                                                )
-                                            }
-                                        },
-                                        config=chart_config
-                                    )
-                                )
-                            )
-                        ])
+                                }
+                            },
+                            config=chart_config
+                        )
                     )
-                ])
-            ], id='vaccine_dose_graph')
-        )
-    ])
+                )
+            ])
+        ], className='container-2'),
+        html.Div([
+            dbc.Container([
+                dbc.Row(
+                    dbc.Col(
+                        dcc.Graph(
+                            figure={
+                                'data': [
+                                    {'x': ds_dosi['data_somministrazione'], 'y': ds_dosi['prima_dose'],
+                                     'type': 'bar',
+                                     'name': 'Prima Dose',
+                                     'marker': dict(color='#F5C05F')},
+                                    {'x': ds_dosi['data_somministrazione'], 'y': ds_dosi['seconda_dose'],
+                                     'type': 'bar',
+                                     'name': 'Seconda Dose',
+                                     'marker': dict(color='#78F5B3')},
+                                ],
+                                'layout': {
+                                    'barmode': 'stack',
+                                    'xaxis': dict(
+                                        rangeselector=dict(buttons=slider_button),
+                                        rangeslider=dict(visible=False),
+                                        type='date'
+                                    )
+                                }
+                            },
+                            config=chart_config
+                        )
+                    )
+                )
+            ])
+        ], className='container-2')
+    ], className='container-1')
 
 # category
 def category():
@@ -396,25 +457,77 @@ def category():
         altro = '{:,}'.format(int(altro)).replace(',', '.')
 
     return html.Div([
-        html.Div(children=[
+        # Sanitari
+        html.Div([
             html.Table([
                 # Header
                 html.Tr([
                     html.Td('Operatori Sanitari', style={'font-size': '14px'}),
-                    html.Td('Operatori non Sanitari', style={'font-size': '14px'}),
-                    html.Td('RSA', style={'font-size': '14px'}),
-                    html.Td('Over 80', style={'font-size': '14px'})
                 ]),
                 html.Tr([
                     html.Td(
                         html.H1('+ ' + str(sanitario) + '', style={'color': '#FF4272', 'font-size': '45px'})
-                    ),
+                    )
+                ]),
+                # Total
+                html.Tr([
+                    html.Td(html.B(
+                        'Totali: ' + str(tot_sanitario), style={'color': '#FF4272', 'font-size': '14px'}
+                    ))
+                ])
+            ], className='table')
+        ], className='container-4'),
+
+        # Non Sanitari
+        html.Div([
+            html.Table([
+                # Header
+                html.Tr([
+                    html.Td('Operatori non Sanitari', style={'font-size': '14px'}),
+                ]),
+                html.Tr([
                     html.Td(
                         html.H1('+ ' + str(non_sanitario) + '', style={'color': '#F2665C', 'font-size': '45px'})
-                    ),
+                    )
+                ]),
+                # Total
+                html.Tr([
+                    html.Td(html.B(
+                        'Totali: ' + str(tot_non_sanitario), style={'color': '#F2665C', 'font-size': '14px'}
+                    ))
+                ])
+            ], className='table')
+        ], className='container-4'),
+
+        # RSA
+        html.Div([
+            html.Table([
+                # Header
+                html.Tr([
+                    html.Td('RSA', style={'font-size': '14px'})
+                ]),
+                html.Tr([
                     html.Td(
                         html.H1('+ ' + str(rsa) + '', style={'color': '#DBAF48', 'font-size': '45px'})
-                    ),
+                    )
+                ]),
+                # Total
+                html.Tr([
+                    html.Td(html.B(
+                        'Totali: ' + str(tot_rsa), style={'color': '#DBAF48', 'font-size': '14px'}
+                    ))
+                ])
+            ], className='table')
+        ], className='container-4'),
+
+        # Over 80
+        html.Div([
+            html.Table([
+                # Header
+                html.Tr([
+                    html.Td('Over 80', style={'font-size': '14px'})
+                ]),
+                html.Tr([
                     html.Td(
                         html.H1('+ ' + str(over80) + '', style={'color': '#50DE8B', 'font-size': '45px'})
                     )
@@ -422,34 +535,62 @@ def category():
                 # Total
                 html.Tr([
                     html.Td(html.B(
-                        'Totali: ' + str(tot_sanitario), style={'color': '#FF4272', 'font-size': '14px'}
-                    )),
-                    html.Td(html.B(
-                        'Totali: ' + str(tot_non_sanitario), style={'color': '#F2665C', 'font-size': '14px'}
-                    )),
-                    html.Td(html.B(
-                        'Totali: ' + str(tot_rsa), style={'color': '#DBAF48', 'font-size': '14px'}
-                    )),
-                    html.Td(html.B(
                         'Totali: ' + str(tot_over80), style={'color': '#50DE8B', 'font-size': '14px'}
                     ))
-                ]),
-            ], id='vaccine_category0'),
-            html.Br(),
-            # second row
+                ])
+            ], className='table')
+        ], className='container-4'),
+
+        # Forze Armate
+        html.Div([
             html.Table([
+                # Header
                 html.Tr([
-                    html.Td('Forze Armate', style={'font-size': '14px'}),
-                    html.Td('Personale Scolastico', style={'font-size': '14px'}),
-                    html.Td('Altro', style={'font-size': '14px'})
+                    html.Td('Forze Armate', style={'font-size': '14px'})
                 ]),
                 html.Tr([
                     html.Td(
                         html.H1('+ ' + str(forze_armate) + '', style={'color': '#4B8CDE', 'font-size': '45px'})
-                    ),
+                    )
+                ]),
+                # Total
+                html.Tr([
+                    html.Td(html.B(
+                        'Totali: ' + str(tot_forze_armate), style={'color': '#4B8CDE', 'font-size': '14px'}
+                    ))
+                ])
+            ], className='table')
+        ], className='container-3'),
+
+        # Personale Scolastico
+        html.Div([
+            html.Table([
+                # Header
+                html.Tr([
+                    html.Td('Personale Scolastico', style={'font-size': '14px'})
+                ]),
+                html.Tr([
                     html.Td(
                         html.H1('+ ' + str(scuola) + '', style={'color': '#68D8DE', 'font-size': '45px'})
-                    ),
+                    )
+                ]),
+                # Total
+                html.Tr([
+                    html.Td(html.B(
+                        'Totali: ' + str(tot_scuola), style={'color': '#68D8DE', 'font-size': '14px'}
+                    ))
+                ])
+            ], className='table')
+        ], className='container-3'),
+
+        # Altro
+        html.Div([
+            html.Table([
+                # Header
+                html.Tr([
+                    html.Td('Altro', style={'font-size': '14px'})
+                ]),
+                html.Tr([
                     html.Td(
                         html.H1('+ ' + str(altro) + '', style={'color': '#844BDB', 'font-size': '45px'})
                     )
@@ -457,18 +598,14 @@ def category():
                 # Total
                 html.Tr([
                     html.Td(html.B(
-                        'Totali: ' + str(tot_forze_armate), style={'color': '#4B8CDE', 'font-size': '14px'}
-                    )),
-                    html.Td(html.B(
-                        'Totali: ' + str(tot_scuola), style={'color': '#68D8DE', 'font-size': '14px'}
-                    )),
-                    html.Td(html.B(
                         'Totali: ' + str(tot_altro), style={'color': '#844BDB', 'font-size': '14px'}
                     ))
                 ])
-            ], id='vaccine_category1')
-        ])
-    ])
+            ], className='table')
+        ], className='container-3')
+    ], className='container-1')
+
+
 
 # graph tot category
 def category_global():
@@ -510,12 +647,13 @@ def category_global():
                                  'marker': dict(color='#844BDB')},
                             ],
                             'layout': {
-                                'barmode': 'stack', # stack data
+                                'barmode': 'stack',  # stack data
+                                # 'showlegend': False,
                                 'xaxis': dict(
                                     rangeselector=dict(buttons=slider_button),
                                     rangeslider=dict(visible=False),
                                     type='date'
-                                )
+                                ),
                             }
                         },
                         config=chart_config
@@ -547,7 +685,7 @@ def vaccine_age_bar():
             },
             config=chart_config
         )
-    ], id='vaccine_age_bar')
+    ], className='bar')
 
 # forecast
 def previsione():
@@ -617,89 +755,105 @@ def previsione():
 # effect
 def effetti_decessi_contagi_graph():
     refresh_data()
+
+    sum_month=[]
+    date_month=[]
+    diff = 0
+    i = 0
+    l = int(len(ddc)-1)
+    for i in range(l):
+        if ddc['data'][i][8:-9] == '01':
+            date_month.append(ddc['data'][i-1])
+            sum_month.append((int(ddc['deceduti'][i-1]) - diff) / int(ddc['data'][i-1][8:-9])) # to stay in the graph
+            diff = int(ddc['deceduti'][i-1])
+
     return html.Div([
-        html.Div(
-            html.Table([
-                html.Tr([
-                    html.Td(
-                        dbc.Container([
-                            dbc.Row(
-                                dbc.Col(
-                                    dcc.Graph(
-                                        figure={
-                                            'data': [
-                                                {'x': ddc['data'], 'y': ddc['nuovi_positivi'], 'type': 'bar', 'name': 'Nuovi Positivi',
-                                                 'marker': dict(color='#D9615D')},
-                                                # line start vaccine
-                                                go.Scatter(x=['2020-12-27', '2020-12-27'],
-                                                           y=[0, 40000],
-                                                           mode='lines',
-                                                           name='Inizio Vaccini',
-                                                           hoverinfo='none',
-                                                           line=go.scatter.Line(color="#4F4747"))
-                                            ],
-                                            'layout': {
-                                                'xaxis': dict(
-                                                    rangeselector=dict(buttons=slider_button),
-                                                    rangeslider=dict(visible=False),
-                                                    type='date'
-                                                )
-                                            }
-                                        },
-                                        config=chart_config
+        html.Div([
+            dbc.Container([
+                dbc.Row(
+                    dbc.Col(
+                        dcc.Graph(
+                            figure={
+                                'data': [
+                                    {'x': ddc['data'], 'y': ddc['nuovi_positivi'], 'type': 'bar', 'name': 'Nuovi Positivi',
+                                     'marker': dict(color='#D9615D')},
+                                    # avg 30 day
+                                    {'x': ddc['data'], 'y': ddc['nuovi_positivi_avg'], 'type': 'scatter',
+                                     'name': 'Media 30g',
+                                     'marker': dict(color='#FF726E')},
+                                    # line start vaccine
+                                    go.Scatter(x=['2020-12-27', '2020-12-27'],
+                                               y=[0, 40000],
+                                               mode='lines',
+                                               name='Inizio Vaccini',
+                                               hoverinfo='none',
+                                               line=go.scatter.Line(color="#4F4747"))
+                                ],
+                                'layout': {
+                                    'xaxis': dict(
+                                        rangeselector=dict(buttons=slider_button),
+                                        rangeslider=dict(visible=False),
+                                        type='date'
                                     )
-                                )
-                            )
-                        ])
-                    ),
-                    html.Td(
-                        dbc.Container([
-                            dbc.Row(
-                                dbc.Col(
-                                    dcc.Graph(
-                                        figure={
-                                            'data': [
-                                                {'x': ddc['data'], 'y': ddc['nuovi_decessi'], 'type': 'bar', 'name': 'Decessi',
-                                                 'marker': dict(color='#756B6B')},
-                                                # line start vaccine
-                                                go.Scatter(x=['2020-12-27', '2020-12-27'],
-                                                           y=[0, 1000],
-                                                           mode='lines',
-                                                           name='Inizio Vaccini',
-                                                           hoverinfo='none',
-                                                           line=go.scatter.Line(color="#1F1C1C"))
-                                            ],
-                                            'layout': {
-                                                'xaxis': dict(
-                                                    rangeselector=dict(buttons=slider_button),
-                                                    rangeslider=dict(visible=False),
-                                                    type='date'
-                                                ),
-                                            }
-                                        },
-                                        config=chart_config
-                                    )
-                                )
-                            )
-                        ])
+                                }
+                            },
+                            config=chart_config
+                        )
                     )
-                ])
-            ], id='effect_graph')
-        )
-    ])
+                )
+            ])
+        ], className='container-2'),
+        html.Div([
+            dbc.Container([
+                dbc.Row(
+                    dbc.Col(
+                        dcc.Graph(
+                            figure={
+                                'data': [
+                                    {'x': ddc['data'], 'y': ddc['nuovi_decessi'], 'type': 'bar', 'name': 'Decessi',
+                                     'marker': dict(color='#756B6B')},
+                                    # avg 30 day
+                                    {'x': ddc['data'], 'y': ddc['nuovi_decessi_avg'], 'type': 'scatter', 'name': 'Media 30g',
+                                     'marker': dict(color='#C2B0B0')},
+                                    # line start vaccine
+                                    go.Scatter(x=['2020-12-27', '2020-12-27'],
+                                               y=[0, 1000],
+                                               mode='lines',
+                                               name='Inizio Vaccini',
+                                               hoverinfo='none',
+                                               line=go.scatter.Line(color="#1F1C1C"))
+                                ],
+                                'layout': {
+                                    'xaxis': dict(
+                                        rangeselector=dict(buttons=slider_button),
+                                        rangeslider=dict(visible=False),
+                                        type='date'
+                                    ),
+                                }
+                            },
+                            config=chart_config
+                        )
+                    )
+                )
+            ])
+        ], className='container-2'),
+    ], className='container-1')
 
 app.layout = html.Div([
+    html.Link(rel="stylesheet", media="screen and (min-width: 900px)", href="./assets/big.css"),
+    html.Link(rel="stylesheet", media="screen and (max-width: 900px)", href="./assets/small.css"),
+    html.Div([html.Br(), html.Br(), html.Center(html.H1('Vaccini')), html.Br(), html.Br()]),
     html.Div([vaccine_update()]),
     html.Div([vaccine_update_bar()]),
     html.Div(html.Center(html.I([html.Br(), "L'obiettivo della campagna di vaccinazione della popolazione è prevenire le morti da COVID-19 e raggiungere al più presto l'immunità di gregge per il SARS-CoV2.", html.Br(), "La campagna è partita il ", html.B("27 dicembre"), ", vista l'approvazione da parte dell'EMA (European Medicines Agency) del primo vaccino anti COVID-19.", html.Br(), "Dopo una fase iniziale, che dovrà essere limitata, per il numero di dosi consegnate, essa si svilupperà in continuo crescendo.", html.Br(), "I vaccini saranno offerti a tutta la popolazione, secondo un ordine di priorità, che tiene conto del rischio di malattia, dei tipi di vaccino e della loro disponibilità."], style={'font-size': 'large'}))),
     html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H1('Dati del Giorno')), html.Center(html.I('dati aggionati del '+str(last_update), style={'font-size': '14px'})), html.Br(), html.Br()]),
-    html.Div([vaccine_daily()]),
-    html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H2('Vaccini & Dosi'))]),
+    html.Div([vaccine_daily(), html.Br(), html.Br()]),
+    html.Div([html.Br(), html.Br(), html.Center(html.H2('Vaccini & Dosi'))]),
     html.Div([vaccine_and_dosi_graph()]),
-    html.Div([html.Br(), html.Center(html.H2('Categorie')), html.Br(), html.Br()]),
+    html.Div([html.Br(), html.Center(html.H2('Categorie')), html.Center(html.I('I dati sono calcolati sulle somministrazioni delle prime dosi', style={'font-size': '14px'})), html.Br(), html.Br()]),
     html.Div([category()]),
     html.Div([category_global()]),
-    html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H2('Vaccini per fascia di età'))]),
+    html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H2('Vaccini per fascia di età')), html.Center(html.I('I dati sono calcolati sulle somministrazioni delle prime dosi', style={'font-size': '14px'}))]),
     html.Div([vaccine_age_bar()]),
     html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H1('Previsioni')), html.Center(html.I('Il modello utilizza i dati giornalieri sulle somministrazioni delle prime dosi', style={'font-size': '14px'})), html.Center(html.I('*Media basata sul valore massimo di prime dosi fatte in un giorno', style={'font-size': '14px'}))]),
     html.Div([previsione()]),
