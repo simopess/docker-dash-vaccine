@@ -39,10 +39,10 @@ slider_button = list([
          label="3m",
          step="month",
          stepmode="backward"),
-    dict(count=6,
-         label="6m",
-         step="month",
-         stepmode="backward"),
+    # dict(count=6,
+    #     label="6m",
+    #     step="month",
+    #     stepmode="backward"),
     dict(step="all")
 ])
 
@@ -339,6 +339,13 @@ def vaccine_and_dosi_graph():
                                         rangeselector=dict(buttons=slider_button),
                                         rangeslider=dict(visible=False),
                                         type='date'
+                                    ),
+                                    'legend': dict(
+                                        orientation="h",
+                                        yanchor="bottom",
+                                        y=1.02,
+                                        xanchor="right",
+                                        x=1
                                     )
                                 }
                             },
@@ -370,6 +377,13 @@ def vaccine_and_dosi_graph():
                                         rangeselector=dict(buttons=slider_button),
                                         rangeslider=dict(visible=False),
                                         type='date'
+                                    ),
+                                    'legend': dict(
+                                        orientation="h",
+                                        yanchor="bottom",
+                                        y=1.02,
+                                        xanchor="right",
+                                        x=1
                                     )
                                 }
                             },
@@ -654,6 +668,13 @@ def category_global():
                                     rangeslider=dict(visible=False),
                                     type='date'
                                 ),
+                                'legend': dict(
+                                    orientation="h",
+                                    yanchor="bottom",
+                                    y=1.02,
+                                    xanchor="right",
+                                    x=1
+                                )
                             }
                         },
                         config=chart_config
@@ -742,6 +763,13 @@ def previsione():
                                 'yaxis': dict(
                                     tickformat=',.0%',  # percentage on y axis
                                     range=[0, 1]
+                                ),
+                                'legend': dict(
+                                    orientation="h",
+                                    yanchor="bottom",
+                                    y=1.02,
+                                    xanchor="right",
+                                    x=1
                                 )
                             }
                         },
@@ -794,6 +822,13 @@ def effetti_decessi_contagi_graph():
                                         rangeselector=dict(buttons=slider_button),
                                         rangeslider=dict(visible=False),
                                         type='date'
+                                    ),
+                                    'legend': dict(
+                                        orientation="h",
+                                        yanchor="bottom",
+                                        y=1.02,
+                                        xanchor="right",
+                                        x=1
                                     )
                                 }
                             },
@@ -829,6 +864,13 @@ def effetti_decessi_contagi_graph():
                                         rangeslider=dict(visible=False),
                                         type='date'
                                     ),
+                                    'legend': dict(
+                                        orientation="h",
+                                        yanchor="bottom",
+                                        y=1.02,
+                                        xanchor="right",
+                                        x=1
+                                    )
                                 }
                             },
                             config=chart_config
