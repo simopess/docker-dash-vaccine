@@ -39,10 +39,10 @@ slider_button = list([
          label="3m",
          step="month",
          stepmode="backward"),
-    # dict(count=6,
-    #     label="6m",
-    #     step="month",
-    #     stepmode="backward"),
+    dict(count=6,
+         label="6m",
+         step="month",
+         stepmode="backward"),
     dict(step="all")
 ])
 
@@ -342,10 +342,9 @@ def vaccine_and_dosi_graph():
                                     ),
                                     'legend': dict(
                                         orientation="h",
-                                        yanchor="bottom",
-                                        y=1.02,
-                                        xanchor="right",
-                                        x=1
+                                        xanchor="center",
+                                        x=0.5,
+                                        y=-0.2
                                     )
                                 }
                             },
@@ -380,10 +379,9 @@ def vaccine_and_dosi_graph():
                                     ),
                                     'legend': dict(
                                         orientation="h",
-                                        yanchor="bottom",
-                                        y=1.02,
-                                        xanchor="right",
-                                        x=1
+                                        xanchor="center",
+                                        x=0.5,
+                                        y=-0.2
                                     )
                                 }
                             },
@@ -670,10 +668,9 @@ def category_global():
                                 ),
                                 'legend': dict(
                                     orientation="h",
-                                    yanchor="bottom",
-                                    y=1.02,
-                                    xanchor="right",
-                                    x=1
+                                    xanchor="center",
+                                    x=0.5,
+                                    y=-0.2
                                 )
                             }
                         },
@@ -766,10 +763,9 @@ def previsione():
                                 ),
                                 'legend': dict(
                                     orientation="h",
-                                    yanchor="bottom",
-                                    y=1.02,
-                                    xanchor="right",
-                                    x=1
+                                    xanchor="center",
+                                    x=0.5,
+                                    y=-0.2
                                 )
                             }
                         },
@@ -825,10 +821,9 @@ def effetti_decessi_contagi_graph():
                                     ),
                                     'legend': dict(
                                         orientation="h",
-                                        yanchor="bottom",
-                                        y=1.02,
-                                        xanchor="right",
-                                        x=1
+                                        xanchor="center",
+                                        x=0.5,
+                                        y=-0.2
                                     )
                                 }
                             },
@@ -866,10 +861,9 @@ def effetti_decessi_contagi_graph():
                                     ),
                                     'legend': dict(
                                         orientation="h",
-                                        yanchor="bottom",
-                                        y=1.02,
-                                        xanchor="right",
-                                        x=1
+                                        xanchor="center",
+                                        x=0.5,
+                                        y=-0.2
                                     )
                                 }
                             },
