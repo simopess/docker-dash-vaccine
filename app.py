@@ -143,13 +143,13 @@ def vaccine_update_bar():
         html.Div([
             dcc.Graph(
                 figure={
-                    'data': [go.Bar(x=[60360000, int(tot_prima), int(tot_seconda)],
-                                    y=['Popolazione', 'Prima dose', 'Vaccinati'],
+                    'data': [go.Bar(x=[60360000, 50773718, int(tot_prima), int(tot_seconda)],
+                                    y=['Popolazione', 'Platea', 'Prima dose', 'Vaccinati'],
                                     orientation='h',
-                                    marker_color=['#6181E8', '#F5C05F', '#E83A8E'])
+                                    marker_color=['#6181E8', '#5EAEFF', '#F5C05F', '#E83A8E'])
                              ],
                     'layout': {
-                        'height': 240,  # px
+                        'height': 250,  # px
                         'xaxis': dict(
                             rangeslider=dict(visible=False),
                             type=''
@@ -275,7 +275,7 @@ def vaccine_daily():
             html.Table([
                 # Header
                 html.Tr([
-                    html.Td('Persone Vaccinate', style={'font-size': '14px'})
+                    html.Td('Persone Vaccinate (Due Dosi)', style={'font-size': '14px'})
                 ]),
                 # Body
                 html.Tr([
@@ -294,6 +294,8 @@ def vaccine_daily():
         ], className='container-4')
     ], className='container-1')
 
+
+# vaccine and doses graph
 def vaccine_and_dosi_graph():
     refresh_data()
     # vaccine
