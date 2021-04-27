@@ -13,6 +13,7 @@ consegne = 'https://raw.githubusercontent.com/italia/covid19-opendata-vaccini/ma
 somministrazioni = 'https://raw.githubusercontent.com/italia/covid19-opendata-vaccini/master/dati/somministrazioni-vaccini-latest.csv'
 fascia_anagrafica = 'https://raw.githubusercontent.com/italia/covid19-opendata-vaccini/master/dati/anagrafica-vaccini-summary-latest.csv'
 decessicontagi = 'https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-andamento-nazionale/dpc-covid19-ita-andamento-nazionale.csv'
+fascia_eta = 'https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-statistici-riferimento/popolazione-istat-regione-range.csv'
 
 last_update = ''  # last update
 pandas.options.mode.chained_assignment = None  # default='warn'
@@ -49,20 +50,26 @@ slider_button = list([
 # refresh data
 def refresh_data():
     global today
-    global dc, ds, dfa, ddc, ds_dosi
+    global dc, ds, dfa, ddc, dfe, ds_dosi
     global tot_prima_dose, tot_seconda_dose, tot_prima, tot_seconda
     # read csv for url and get date
     dc = pandas.read_csv(consegne)
     ds = pandas.read_csv(somministrazioni)
     dfa = pandas.read_csv(fascia_anagrafica)
     ddc = pandas.read_csv(decessicontagi)
+    dfe = pandas.read_csv(fascia_eta)
     today = date.today()
 
     # doses delivered
     dc = dc.groupby('data_consegna').agg({'numero_dosi': 'sum'}).reset_index()
 
     # doses administered
-    ds_dosi = ds.groupby('data_somministrazione').agg({'prima_dose': 'sum', 'seconda_dose': 'sum', 'categoria_operatori_sanitari_sociosanitari': 'sum', 'categoria_personale_non_sanitario': 'sum', 'categoria_ospiti_rsa': 'sum', 'categoria_over80': 'sum', 'categoria_forze_armate': 'sum', 'categoria_personale_scolastico': 'sum', 'categoria_altro': 'sum'}).reset_index()
+    ds_dosi = ds.groupby('data_somministrazione').agg(
+        {'prima_dose': 'sum', 'seconda_dose': 'sum', 'categoria_operatori_sanitari_sociosanitari': 'sum',
+         'categoria_personale_non_sanitario': 'sum', 'categoria_ospiti_rsa': 'sum', 'categoria_over80': 'sum',
+         'categoria_forze_armate': 'sum', 'categoria_personale_scolastico': 'sum',
+         'categoria_altro': 'sum'}).reset_index()
+
     # first dose from the start
     tot_prima = ds_dosi.loc[ds_dosi['data_somministrazione'].between('2020-12-27', str(today)), ['prima_dose']].sum()
     tot_prima_dose = '{:,}'.format(int(tot_prima)).replace(',', '.')
@@ -76,6 +83,10 @@ def refresh_data():
     # avg
     ddc['nuovi_decessi_avg'] = ddc['nuovi_decessi'].rolling(30).mean()
     ddc['nuovi_positivi_avg'] = ddc['nuovi_positivi'].rolling(30).mean()
+
+    # age
+    dfe = dfe.groupby('range_eta').agg({'totale_generale': 'sum'}).reset_index()
+    dfe = dfe[1:]  # remove 0-15
 
 
 # total vaccine status
@@ -692,14 +703,27 @@ def vaccine_age_bar():
                 'data': [go.Bar(x=[dfa['totale'][0], dfa['totale'][1], dfa['totale'][2], dfa['totale'][3], dfa['totale'][4], dfa['totale'][5], dfa['totale'][6], dfa['totale'][7], dfa['totale'][8]],
                                 y=['16-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80-89', '90+'],
                                 orientation='h',
-                                marker_color=['#DEB1FA', '#D298FA', '#CD85F9', '#C670F9', '#BF53FB', '#A93AE0', '#832DAD', '#491961']
+                                marker_color=['#DEB1FA', '#D298FA', '#CD85F9', '#C670F9', '#BF53FB', '#A93AE0', '#832DAD', '#491961'],
+                                name='Prima Dose'
+                                ),
+                         go.Bar(x=dfe['totale_generale'], y=dfe['range_eta'],
+                                orientation='h',
+                                marker_color='#838BFD',
+                                name='Popolazione'
                                 )
                          ],
                 'layout': {
+                    'barmode': 'stack',  # stack data
                     'height': 340,  # px
                     'xaxis': dict(
                         rangeslider=dict(visible=False),
                         type=''
+                    ),
+                    'legend': dict(
+                        orientation="h",
+                        xanchor="center",
+                        x=0.5,
+                        y=-0.2
                     )
                 },
             },
