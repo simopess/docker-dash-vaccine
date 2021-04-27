@@ -11,9 +11,8 @@ import pandas
 # data URL
 consegne = 'https://raw.githubusercontent.com/italia/covid19-opendata-vaccini/master/dati/consegne-vaccini-latest.csv'
 somministrazioni = 'https://raw.githubusercontent.com/italia/covid19-opendata-vaccini/master/dati/somministrazioni-vaccini-latest.csv'
-fascia_anagrafica = 'https://raw.githubusercontent.com/italia/covid19-opendata-vaccini/master/dati/anagrafica-vaccini-summary-latest.csv'
 decessicontagi = 'https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-andamento-nazionale/dpc-covid19-ita-andamento-nazionale.csv'
-fascia_eta = 'https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-statistici-riferimento/popolazione-istat-regione-range.csv'
+fascia_anagrafica = 'https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-statistici-riferimento/popolazione-istat-regione-range.csv'
 
 last_update = ''  # last update
 pandas.options.mode.chained_assignment = None  # default='warn'
@@ -55,9 +54,8 @@ def refresh_data():
     # read csv for url and get date
     dc = pandas.read_csv(consegne)
     ds = pandas.read_csv(somministrazioni)
-    dfa = pandas.read_csv(fascia_anagrafica)
     ddc = pandas.read_csv(decessicontagi)
-    dfe = pandas.read_csv(fascia_eta)
+    dfe = pandas.read_csv(fascia_anagrafica)
     today = date.today()
 
     # doses delivered
@@ -85,6 +83,8 @@ def refresh_data():
     ddc['nuovi_positivi_avg'] = ddc['nuovi_positivi'].rolling(30).mean()
 
     # age
+    dfa = ds.groupby('fascia_anagrafica').agg({'prima_dose': 'sum', 'seconda_dose': 'sum'}).reset_index()
+
     dfe = dfe.groupby('range_eta').agg({'totale_generale': 'sum'}).reset_index()
     dfe = dfe[1:]  # remove 0-15
 
@@ -700,15 +700,21 @@ def vaccine_age_bar():
     return html.Div([
         dcc.Graph(
             figure={
-                'data': [go.Bar(x=[dfa['totale'][0], dfa['totale'][1], dfa['totale'][2], dfa['totale'][3], dfa['totale'][4], dfa['totale'][5], dfa['totale'][6], dfa['totale'][7], dfa['totale'][8]],
+                'data': [go.Bar(x=[dfa['prima_dose'][0], dfa['prima_dose'][1], dfa['prima_dose'][2], dfa['prima_dose'][3], dfa['prima_dose'][4], dfa['prima_dose'][5], dfa['prima_dose'][6], dfa['prima_dose'][7], dfa['prima_dose'][8]],
                                 y=['16-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80-89', '90+'],
                                 orientation='h',
-                                marker_color=['#DEB1FA', '#D298FA', '#CD85F9', '#C670F9', '#BF53FB', '#A93AE0', '#832DAD', '#491961'],
+                                marker_color='#F5C05F',
                                 name='Prima Dose'
+                                ),
+                         go.Bar(x=[dfa['seconda_dose'][0], dfa['seconda_dose'][1], dfa['seconda_dose'][2], dfa['seconda_dose'][3], dfa['seconda_dose'][4], dfa['seconda_dose'][5], dfa['seconda_dose'][6], dfa['seconda_dose'][7], dfa['seconda_dose'][8]],
+                                y=['16-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80-89', '90+'],
+                                orientation='h',
+                                marker_color='#E83A8E',
+                                name='Seconda Dose'
                                 ),
                          go.Bar(x=dfe['totale_generale'], y=dfe['range_eta'],
                                 orientation='h',
-                                marker_color='#838BFD',
+                                marker_color='#6181E8',
                                 name='Popolazione'
                                 )
                          ],
