@@ -13,15 +13,21 @@ from dash.dependencies import Input, Output
 # data URL
 consegne = 'https://raw.githubusercontent.com/italia/covid19-opendata-vaccini/master/dati/consegne-vaccini-latest.csv'
 somministrazioni = 'https://raw.githubusercontent.com/italia/covid19-opendata-vaccini/master/dati/somministrazioni-vaccini-latest.csv'
-decessicontagi = 'https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-andamento-nazionale/dpc-covid19-ita-andamento-nazionale.csv'
+decessi_contagi = 'https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-andamento-nazionale/dpc-covid19-ita-andamento-nazionale.csv'
+decessi_contagi_regioni = 'https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-regioni/dpc-covid19-ita-regioni.csv'
 fascia_anagrafica = 'https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-statistici-riferimento/popolazione-istat-regione-range.csv'
+population = 0
 
 last_update = ''  # last update
+max_prima_f = ''  # max first dose in 1day
 pandas.options.mode.chained_assignment = None  # default='warn'
+
+# read csv for url and get date
 dc = pandas.read_csv(consegne)
-ddc = pandas.read_csv(decessicontagi)
+ds = pandas.read_csv(somministrazioni)
+ddc = pandas.read_csv(decessi_contagi)
+ddcr = pandas.read_csv(decessi_contagi_regioni)
 dfe = pandas.read_csv(fascia_anagrafica)
-ds = pandas.read_csv(somministrazioni)  # read csv for url and get date
 regions = ds['nome_area'].drop_duplicates().tolist()  # all regions
 
 plotly_js_minified = ['https://cdn.plot.ly/plotly-basic-latest.min.js']
@@ -55,19 +61,18 @@ slider_button = list([
 
 # refresh data
 def refresh_data():
-    global today, last_update
+    global today, last_update, max_prima_f
     global dc, ds, dfa, ddc, dfe, ds_dosi
     global tot_prima_dose, tot_seconda_dose, tot_prima, tot_seconda
     # read csv for url and get date
     dc = pandas.read_csv(consegne)
     ds = pandas.read_csv(somministrazioni)
-    ddc = pandas.read_csv(decessicontagi)
+    ddc = pandas.read_csv(decessi_contagi)
     dfe = pandas.read_csv(fascia_anagrafica)
     today = date.today()
 
     # doses delivered
     dc = dc.groupby('data_consegna').agg({'numero_dosi': 'sum'}).reset_index()
-
     # doses administered
     ds_dosi = ds.groupby('data_somministrazione').agg(
         {'prima_dose': 'sum', 'seconda_dose': 'sum', 'categoria_operatori_sanitari_sociosanitari': 'sum',
@@ -81,23 +86,18 @@ def refresh_data():
     else:
         last_update = date.today() - timedelta(days=1)
 
+    # max first
+    max_prima = int(max(ds_dosi['prima_dose']))
+    max_prima_f = '{:,}'.format(max_prima).replace(',', '.')  # format max first dose
+
     # first dose from the start
     tot_prima = ds_dosi.loc[ds_dosi['data_somministrazione'].between('2020-12-27', str(today)), ['prima_dose']].sum()
     tot_prima_dose = '{:,}'.format(int(tot_prima)).replace(',', '.')
     # second dose from the start
     tot_seconda = ds_dosi.loc[ds_dosi['data_somministrazione'].between('2020-12-27', str(today)), ['seconda_dose']].sum()
     tot_seconda_dose = '{:,}'.format(int(tot_seconda)).replace(',', '.')
-
-    # deaths
-    ddc['nuovi_decessi'] = ddc.deceduti.diff().fillna(ddc.deceduti)
-    ddc['nuovi_decessi'].iloc[121] = 31  # error -31
-    # avg
-    ddc['nuovi_decessi_avg'] = ddc['nuovi_decessi'].rolling(30).mean()
-    ddc['nuovi_positivi_avg'] = ddc['nuovi_positivi'].rolling(30).mean()
-
     # age
     dfa = ds.groupby('fascia_anagrafica').agg({'prima_dose': 'sum', 'seconda_dose': 'sum'}).reset_index()
-
     dfe = dfe.groupby('range_eta').agg({'totale_generale': 'sum'}).reset_index()
     dfe = dfe[1:]  # remove 0-15
 
@@ -455,14 +455,12 @@ def vaccine_graph(regione):
 def dosi_graph(regione):
     if regione == 'Dato Nazionale':
         refresh_data()
-        prima_seconda = ds.groupby('data_somministrazione').agg(
-            {'prima_dose': 'sum', 'seconda_dose': 'sum'}).reset_index()
+        prima_seconda = ds.groupby('data_somministrazione').agg({'prima_dose': 'sum', 'seconda_dose': 'sum'}).reset_index()
     else:
         # vaccine
         ds1 = pandas.read_csv(somministrazioni)
         reg_ds1 = ds1.loc[ds1['nome_area'] == regione]
-        prima_seconda = reg_ds1.copy().groupby('data_somministrazione').agg(
-            {'prima_dose': 'sum', 'seconda_dose': 'sum'}).reset_index()
+        prima_seconda = reg_ds1.copy().groupby('data_somministrazione').agg({'prima_dose': 'sum', 'seconda_dose': 'sum'}).reset_index()
     return html.Div([
             dbc.Container([
                 dbc.Row(
@@ -809,11 +807,10 @@ def dropdown_vaccine_age_bar():
     ])
 
 
-# vaccine horozzonatal bar
+# vaccine # age
 @app.callback(
     Output('vaccine_age_bar', 'children'),
     [Input('dropdown_vaccine_age_bar', 'value')])
-# age
 def vaccine_age_bar(regione):
     if regione == 'Dato Nazionale':
         refresh_data()
@@ -902,20 +899,31 @@ def vaccine_age_bar(regione):
 # forecast
 def previsione():
     refresh_data()
-    date_format = "%Y-%m-%d" # date format
-    inizio = datetime.strptime('2020-12-27', date_format)
+    date_format = "%Y-%m-%d"  # date format
     ora = datetime.strptime(str(today), date_format)
 
     # best day
     l = len(ds_dosi['data_somministrazione'])  # total vaccine day
-    best_day = ((60360000 - int(tot_prima)) / max(ds_dosi['prima_dose'])) - l
+    best_day = (60360000 - int(tot_prima)) / int(max(ds_dosi['prima_dose']))
     best_last_day = str(ora + timedelta(days=best_day))[:10]
+    # 80%
+    best_day_80 = (48288000 - int(tot_prima)) / int(max(ds_dosi['prima_dose']))
+    best_last_day_80 = str(ora + timedelta(days=best_day_80))[:10]
 
     # month
     month_prima = ds_dosi.loc[ds_dosi['data_somministrazione'].between(str(ora-relativedelta(months=1))[:10], str(ora)[:10]), ['prima_dose']].sum()
     month_day_passati = (ora - (ora-relativedelta(months=1))).days
     month_day = (60360000 / int(month_prima)) * month_day_passati
     month_last_day = str(ora + timedelta(days=month_day))[:10]
+    # 80%
+    month_day_80 = (48288000 / int(month_prima)) * month_day_passati
+    month_last_day_80 = str(ora + timedelta(days=month_day_80))[:10]
+    # 70%
+    month_day_70 = (42252000 / int(month_prima)) * month_day_passati
+    month_last_day_70 = str(ora + timedelta(days=month_day_70))[:10]
+    # 60%
+    month_day_60 = (36216000 / int(month_prima)) * month_day_passati
+    month_last_day_60 = str(ora + timedelta(days=month_day_60))[:10]
 
     return html.Div(  # main div
         dbc.Container([
@@ -930,14 +938,14 @@ def previsione():
                                            mode='lines',
                                            name='Previsione del Governo',
                                            line=go.scatter.Line(color="#FA5541")),
-                                go.Scatter(x=[ds_dosi['data_somministrazione'][l-1], month_last_day],
-                                           y=[int(tot_prima)/60360000, 1],
-                                           mode='lines',
+                                go.Scatter(x=[ds_dosi['data_somministrazione'][l-1], month_last_day_60, month_last_day_70, month_last_day_80, month_last_day],
+                                           y=[int(tot_prima)/60360000, 0.6, 0.7, 0.8, 1],
+                                           type='scatter',
                                            name='Previsione Mensile',
                                            line=go.scatter.Line(color="#FA924E")),
-                                go.Scatter(x=[ds_dosi['data_somministrazione'][l-1], best_last_day],
-                                           y=[int(tot_prima)/60360000, 1],
-                                           mode='lines',
+                                go.Scatter(x=[ds_dosi['data_somministrazione'][l-1], best_last_day_80, best_last_day],
+                                           y=[int(tot_prima)/60360000, 0.8, 1],
+                                           type='scatter',
                                            name='Previsione Migliore*',
                                            line=go.scatter.Line(color="#FAC35A"))
                             ],
@@ -965,92 +973,151 @@ def previsione():
         ])
     )
 
-# effect
-def effetti_decessi_contagi_graph():
-    refresh_data()
+
+# dropdown select
+def dropdown_effetti_decessi_contagi_graph():
     return html.Div([
         html.Div([
             dbc.Container([
-                dbc.Row(
+                dbc.Row([
                     dbc.Col(
-                        dcc.Graph(
-                            figure={
-                                'data': [
-                                    {'x': ddc['data'], 'y': ddc['nuovi_positivi'], 'type': 'bar', 'name': 'Nuovi Positivi',
-                                     'marker': dict(color='#D9615D')},
-                                    # avg 30 day
-                                    {'x': ddc['data'], 'y': ddc['nuovi_positivi_avg'], 'type': 'scatter',
-                                     'name': 'Media 30g',
-                                     'marker': dict(color='#FF726E')},
-                                    # line start vaccine
-                                    go.Scatter(x=['2020-12-27', '2020-12-27'],
-                                               y=[0, max(ddc['nuovi_positivi'])],
-                                               mode='lines',
-                                               name='Inizio Vaccini',
-                                               hoverinfo='none',
-                                               line=go.scatter.Line(color="#4F4747"))
-                                ],
-                                'layout': {
-                                    'xaxis': dict(
-                                        rangeselector=dict(buttons=slider_button),
-                                        rangeslider=dict(visible=False),
-                                        type='date'
-                                    ),
-                                    'legend': dict(
-                                        orientation="h",
-                                        xanchor="center",
-                                        x=0.5,
-                                        y=-0.2
-                                    )
-                                }
-                            },
-                            config=chart_config
-                        )
+                        dcc.Dropdown(id='dropdown_effetti_decessi_contagi_graph',
+                                     options=get_dropdown_data(), clearable=False, searchable=False,
+                                     persistence=True, persistence_type='session', value='Dato Nazionale'
+                                     ), style={'margin-left': 'auto', 'margin-right': 'auto'}, width=12, lg=5,
+                        className='mt-2')
+                ])
+            ])
+        ])
+    ])
+
+
+# effect contagi
+@app.callback(
+    Output('effetti_contagi_graph', 'children'),
+    [Input('dropdown_effetti_decessi_contagi_graph', 'value')])
+def effetti_contagi_graph(regione):
+    if regione == 'Dato Nazionale':
+        refresh_data()
+        dec = ddc
+        dec['nuovi_positivi_avg'] = ddc['nuovi_positivi'].rolling(30).mean()
+    else:
+        # edit regions
+        if regione == 'Friuli-Venezia Giulia': regione = 'Friuli Venezia Giulia'
+        elif regione == 'Provincia Autonoma Bolzano / Bozen': regione = 'P.A. Bolzano'
+        elif regione == 'Provincia Autonoma Trento': regione = 'P.A. Trento'
+        elif regione == "Valle d'Aosta / Vallée d'Aoste": regione = "Valle d'Aosta"
+        ddcr = pandas.read_csv(decessi_contagi_regioni)
+        reg_ddcr = ddcr.loc[ddcr['denominazione_regione'] == regione]
+        dec = reg_ddcr.copy()
+        dec['nuovi_positivi_avg'] = dec['nuovi_positivi'].rolling(30).mean()
+    return html.Div([
+        dbc.Container([
+            dbc.Row(
+                dbc.Col(
+                    dcc.Graph(
+                        figure={
+                            'data': [
+                                {'x': dec['data'], 'y': dec['nuovi_positivi'], 'type': 'bar', 'name': 'Nuovi Positivi',
+                                 'marker': dict(color='#D9615D')},
+                                # avg 30 day
+                                {'x': dec['data'], 'y': dec['nuovi_positivi_avg'], 'type': 'scatter',
+                                 'name': 'Media 30g',
+                                 'marker': dict(color='#FF726E')},
+                                # line start vaccine
+                                go.Scatter(x=['2020-12-27', '2020-12-27'],
+                                           y=[0, max(dec['nuovi_positivi'])],
+                                           mode='lines',
+                                           name='Inizio Vaccini',
+                                           hoverinfo='none',
+                                           line=go.scatter.Line(color="#4F4747"))
+                            ],
+                            'layout': {
+                                'xaxis': dict(
+                                    rangeselector=dict(buttons=slider_button),
+                                    rangeslider=dict(visible=False),
+                                    type='date'
+                                ),
+                                'legend': dict(
+                                    orientation="h",
+                                    xanchor="center",
+                                    x=0.5,
+                                    y=-0.2
+                                )
+                            }
+                        },
+                        config=chart_config
                     )
                 )
-            ])
-        ], className='container-2'),
-        html.Div([
-            dbc.Container([
-                dbc.Row(
-                    dbc.Col(
-                        dcc.Graph(
-                            figure={
-                                'data': [
-                                    {'x': ddc['data'], 'y': ddc['nuovi_decessi'], 'type': 'bar', 'name': 'Decessi',
-                                     'marker': dict(color='#756B6B')},
-                                    # avg 30 day
-                                    {'x': ddc['data'], 'y': ddc['nuovi_decessi_avg'], 'type': 'scatter', 'name': 'Media 30g',
-                                     'marker': dict(color='#C2B0B0')},
-                                    # line start vaccine
-                                    go.Scatter(x=['2020-12-27', '2020-12-27'],
-                                               y=[0, max(ddc['nuovi_decessi'])],
-                                               mode='lines',
-                                               name='Inizio Vaccini',
-                                               hoverinfo='none',
-                                               line=go.scatter.Line(color="#1F1C1C"))
-                                ],
-                                'layout': {
-                                    'xaxis': dict(
-                                        rangeselector=dict(buttons=slider_button),
-                                        rangeslider=dict(visible=False),
-                                        type='date'
-                                    ),
-                                    'legend': dict(
-                                        orientation="h",
-                                        xanchor="center",
-                                        x=0.5,
-                                        y=-0.2
-                                    )
-                                }
-                            },
-                            config=chart_config
-                        )
+            )
+        ])
+    ], className='container-2')
+
+
+# effect contagi
+@app.callback(
+    Output('effetti_decessi_graph', 'children'),
+    [Input('dropdown_effetti_decessi_contagi_graph', 'value')])
+def effetti_decessi_graph(regione):
+    if regione == 'Dato Nazionale':
+        refresh_data()
+        ded = ddc
+        ded['nuovi_decessi'] = ded.deceduti.diff().fillna(ded.deceduti)
+        ded['nuovi_decessi'].iloc[121] = 31  # error -31
+        # avg
+        ded['nuovi_decessi_avg'] = ded['nuovi_decessi'].rolling(30).mean()
+    else:
+        # edit regions
+        if regione == 'Friuli-Venezia Giulia': regione = 'Friuli Venezia Giulia'
+        elif regione == 'Provincia Autonoma Bolzano / Bozen': regione = 'P.A. Bolzano'
+        elif regione == 'Provincia Autonoma Trento': regione = 'P.A. Trento'
+        elif regione == "Valle d'Aosta / Vallée d'Aoste": regione = "Valle d'Aosta"
+        ddcr = pandas.read_csv(decessi_contagi_regioni)
+        reg_ddcr = ddcr.loc[ddcr['denominazione_regione'] == regione]
+        ded = reg_ddcr.copy()
+        ded['nuovi_decessi'] = ded.deceduti.diff().fillna(ded.deceduti)
+        ded['nuovi_decessi_avg'] = ded['nuovi_decessi'].rolling(30).mean()
+    return html.Div([
+        dbc.Container([
+            dbc.Row(
+                dbc.Col(
+                    dcc.Graph(
+                        figure={
+                            'data': [
+                                {'x': ded['data'], 'y': ded['nuovi_decessi'], 'type': 'bar', 'name': 'Decessi',
+                                 'marker': dict(color='#756B6B')},
+                                # avg 30 day
+                                {'x': ded['data'], 'y': ded['nuovi_decessi_avg'], 'type': 'scatter', 'name': 'Media 30g',
+                                 'marker': dict(color='#C2B0B0')},
+                                # line start vaccine
+                                go.Scatter(x=['2020-12-27', '2020-12-27'],
+                                           y=[0, max(ded['nuovi_decessi'])],
+                                           mode='lines',
+                                           name='Inizio Vaccini',
+                                           hoverinfo='none',
+                                           line=go.scatter.Line(color="#1F1C1C"))
+                            ],
+                            'layout': {
+                                'xaxis': dict(
+                                    rangeselector=dict(buttons=slider_button),
+                                    rangeslider=dict(visible=False),
+                                    type='date'
+                                ),
+                                'legend': dict(
+                                    orientation="h",
+                                    xanchor="center",
+                                    x=0.5,
+                                    y=-0.2
+                                )
+                            }
+                        },
+                        config=chart_config
                     )
                 )
-            ])
-        ], className='container-2'),
-    ], className='container-1')
+            )
+        ])
+    ], className='container-2')
+
 
 app.layout = html.Div([
     html.Link(rel="stylesheet", media="screen and (min-width: 900px)", href="./assets/big.css"),
@@ -1071,10 +1138,11 @@ app.layout = html.Div([
     html.Div([dropdown_vaccine_age_bar()]),
     html.Div(id='vaccine_age_bar'),
     html.Div([html.Div(id='category_global')], className='container-1'),
-    html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H1('Previsioni')), html.Center(html.I('Il modello utilizza i dati giornalieri sulle somministrazioni delle prime dosi', style={'font-size': '14px'})), html.Center(html.I('*Media basata sul valore massimo di prime dosi fatte in un giorno', style={'font-size': '14px'}))]),
+    html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H1('Previsioni')), html.Center(html.I('Il modello utilizza i dati giornalieri sulle somministrazioni delle prime dosi', style={'font-size': '14px'})), html.Center(html.I('*Media basata sul valore massimo di prime dosi fatte in un giorno, ad ora '+str(max_prima_f), style={'font-size': '14px'}))]),
     html.Div([previsione()]),
-    html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H2('Effetti dei Vaccini nel Tempo'))]),
-    html.Div([effetti_decessi_contagi_graph()])
+    html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H2('Effetti dei Vaccini nel Tempo')), html.Br()]),
+    html.Div([dropdown_effetti_decessi_contagi_graph(), html.Br()]),
+    html.Div([html.Div(id='effetti_contagi_graph'), html.Div(id='effetti_decessi_graph')], className='container-1'),
 ])
 
 if __name__ == '__main__':
