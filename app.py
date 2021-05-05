@@ -115,8 +115,16 @@ def get_dropdown_data():
 def vaccine_update():
     refresh_data()
     # percentage
+    janssen = ds.loc[ds['fornitore'] == 'Janssen'].groupby('data_somministrazione').agg({'prima_dose': 'sum'}).reset_index()
+    tot_janssen = janssen.loc[janssen['data_somministrazione'].between('2021-04-05', str(today)), ['prima_dose']].sum()
+    prima = int(tot_prima) - int(tot_janssen)
+    # percentage
     primadose = round((int(tot_prima)/60360000)*100, 2)
     secondadose = round((int(tot_seconda)/60360000)*100, 2)
+    tjanssen = round((int(tot_janssen) / 60360000) * 100, 2)
+    # formating
+    tot_prima_dose = '{:,}'.format(int(prima)).replace(',', '.')
+    tot_janssen = '{:,}'.format(int(tot_janssen)).replace(',', '.')
     return html.Div([
         html.Div([
             html.Table([
@@ -138,7 +146,7 @@ def vaccine_update():
                     ))
                 ])
             ], className='table')
-        ], className='container-2'),
+        ], className='container-3'),
         html.Div([
             html.Table([
                 # Header
@@ -158,7 +166,27 @@ def vaccine_update():
                     ))
                 ])
             ], className='table')
-        ], className='container-2')
+        ], className='container-3'),
+        html.Div([
+            html.Table([
+                # Header
+                html.Tr([
+                    html.Td('Vaccino monodose', style={'font-size': '14px'}),
+                ]),
+                # Body
+                html.Tr([
+                    html.Td(
+                        html.H1(tot_janssen, style={'color': '#E83A8E', 'font-size': '45px'})
+                    ),
+                ]),
+                # Percentage
+                html.Tr([
+                    html.Td(html.B(
+                        '' + str(tjanssen) + '% della popolazione', style={'color': '#E83A8E', 'font-size': '14px'}
+                    ))
+                ])
+            ], className='table')
+        ], className='container-3')
     ], className='container-1')
 
 
@@ -1125,7 +1153,7 @@ app.layout = html.Div([
     html.Div([html.Br(), html.Br(), html.Center(html.H1('Vaccini')), html.Br(), html.Br()]),
     html.Div([vaccine_update()]),
     html.Div([vaccine_update_bar()]),
-    html.Div(html.Center(html.I([html.Br(), "L'obiettivo della campagna di vaccinazione della popolazione è prevenire le morti da COVID-19 e raggiungere al più presto l'immunità di gregge per il SARS-CoV2.", html.Br(), "La campagna è partita il ", html.B("27 dicembre"), ", vista l'approvazione da parte dell'EMA (European Medicines Agency) del primo vaccino anti COVID-19.", html.Br(), "Dopo una fase iniziale, che dovrà essere limitata, per il numero di dosi consegnate, essa si svilupperà in continuo crescendo.", html.Br(), "I vaccini saranno offerti a tutta la popolazione, secondo un ordine di priorità, che tiene conto del rischio di malattia, dei tipi di vaccino e della loro disponibilità."], style={'font-size': 'large'}))),
+    html.Div(html.Center(html.I([html.Br(), "L'obiettivo della campagna di vaccinazione della popolazione è prevenire le morti da COVID-19 e raggiungere al più presto l'immunità di gregge per il SARS-CoV2", html.Br(), "La campagna è partita il ", html.B("27 dicembre"), ", vista l'approvazione da parte dell'EMA (European Medicines Agency) del primo vaccino anti COVID-19.", html.Br(), "Dopo una fase iniziale, che dovrà essere limitata, per il numero di dosi consegnate, essa si svilupperà in continuo crescendo.", html.Br(), "I vaccini saranno offerti a tutta la popolazione, secondo un ordine di priorità, che tiene conto del rischio di malattia, dei tipi di vaccino e della loro disponibilità."], style={'font-size': 'large'}))),
     html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H1('Dati del Giorno')), html.Center(html.I('dati aggionati del '+str(last_update), style={'font-size': '14px'})), html.Br()]),
     html.Div([dropdown_vaccine_daily(), html.Br()]),
     html.Div(id='vaccine_daily'),
