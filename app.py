@@ -20,6 +20,8 @@ population = 0
 
 last_update = ''  # last update
 max_prima_f = ''  # max first dose in 1day
+tot_janssen = ''  # tot only 1 dose
+month_last_day_vaccine = ''  # 70% population vaccine date
 pandas.options.mode.chained_assignment = None  # default='warn'
 
 # read csv for url and get date
@@ -114,6 +116,7 @@ def get_dropdown_data():
 # total vaccine status
 def vaccine_update():
     refresh_data()
+    global tot_janssen
     # percentage
     janssen = ds.loc[ds['fornitore'] == 'Janssen'].groupby('data_somministrazione').agg({'prima_dose': 'sum'}).reset_index()
     tot_janssen = janssen.loc[janssen['data_somministrazione'].between('2021-04-05', str(today)), ['prima_dose']].sum()
@@ -927,6 +930,7 @@ def vaccine_age_bar(regione):
 # forecast
 def previsione():
     refresh_data()
+    global month_last_day_vaccine
     date_format = "%Y-%m-%d"  # date format
     ora = datetime.strptime(str(today), date_format)
 
@@ -952,6 +956,8 @@ def previsione():
     # 60%
     month_day_60 = (36216000 / int(month_prima)) * month_day_passati
     month_last_day_60 = str(ora + timedelta(days=month_day_60))[:10]
+
+    month_last_day_vaccine = month_last_day_70  # last day 70% vaccine
 
     return html.Div(  # main div
         dbc.Container([
@@ -1168,6 +1174,9 @@ app.layout = html.Div([
     html.Div([html.Div(id='category_global')], className='container-1'),
     html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H1('Previsioni')), html.Center(html.I('Il modello utilizza i dati giornalieri sulle somministrazioni delle prime dosi', style={'font-size': '14px'})), html.Center(html.I('*Media basata sul valore massimo di prime dosi fatte in un giorno, ad ora '+str(max_prima_f), style={'font-size': '14px'}))]),
     html.Div([previsione()]),
+    html.Div(html.Center([html.Br(), "Nell’ultimo ", html.B("mese"), " sono state somministrate ", html.Mark([html.B(str(max_prima_f)), " prime dosi"], style={'background-color': '#F5C05F'}),
+         " in ", html.B("Italia"), " di cui ", html.Mark([html.B(str(tot_janssen)), " monodose"], style={'background-color': '#F5C05F'}), html.Br(),
+         "A questo ritmo il ", html.B("70% della popolazione"), " sarà vaccinata entro il ", html.Mark([str(month_last_day_vaccine)], style={'background-color': '#F5C05F'})])),
     html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H2('Effetti dei Vaccini nel Tempo')), html.Br()]),
     html.Div([dropdown_effetti_decessi_contagi_graph(), html.Br()]),
     html.Div([html.Div(id='effetti_contagi_graph'), html.Div(id='effetti_decessi_graph')], className='container-1'),
