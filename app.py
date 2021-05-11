@@ -1153,34 +1153,39 @@ def effetti_decessi_graph(regione):
     ], className='container-2')
 
 
-app.layout = html.Div([
-    html.Link(rel="stylesheet", media="screen and (min-width: 900px)", href="./assets/big.css"),
-    html.Link(rel="stylesheet", media="screen and (max-width: 900px)", href="./assets/small.css"),
-    html.Div([html.Br(), html.Br(), html.Center(html.H1('Vaccini')), html.Br(), html.Br()]),
-    html.Div([vaccine_update()]),
-    html.Div([vaccine_update_bar()]),
-    html.Div(html.Center(html.I([html.Br(), "L'obiettivo della campagna di vaccinazione della popolazione è prevenire le morti da COVID-19 e raggiungere al più presto l'immunità di gregge per il SARS-CoV2", html.Br(), "La campagna è partita il ", html.B("27 dicembre"), ", vista l'approvazione da parte dell'EMA (European Medicines Agency) del primo vaccino anti COVID-19.", html.Br(), "Dopo una fase iniziale, che dovrà essere limitata, per il numero di dosi consegnate, essa si svilupperà in continuo crescendo.", html.Br(), "I vaccini saranno offerti a tutta la popolazione, secondo un ordine di priorità, che tiene conto del rischio di malattia, dei tipi di vaccino e della loro disponibilità."], style={'font-size': 'large'}))),
-    html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H1('Dati del Giorno')), html.Center(html.I('dati aggionati del '+str(last_update), style={'font-size': '14px'})), html.Br()]),
-    html.Div([dropdown_vaccine_daily(), html.Br()]),
-    html.Div(id='vaccine_daily'),
-    html.Div([html.Br(), html.Br(), html.Center(html.H2('Vaccini & Dosi'))]),
-    html.Div([html.Div(id='vaccine_graph'), html.Div(id='dosi_graph')], className='container-1'),
-    html.Div([html.Br(), html.Center(html.H2('Categorie')), html.Center(html.I('I dati sono calcolati sulle somministrazioni delle prime dosi', style={'font-size': '14px'})), html.Br(), html.Br()]),
-    html.Div([category()]),
-    html.Div([category_global()]),
-    html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H2('Vaccini per fascia di età')), html.Center(html.I('I dati sono calcolati sulle somministrazioni delle prime dosi', style={'font-size': '14px'}))]),
-    html.Div([dropdown_vaccine_age_bar()]),
-    html.Div(id='vaccine_age_bar'),
-    html.Div([html.Div(id='category_global')], className='container-1'),
-    html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H1('Previsioni')), html.Center(html.I('Il modello utilizza i dati giornalieri sulle somministrazioni delle prime dosi', style={'font-size': '14px'})), html.Center(html.I('*Media basata sul valore massimo di prime dosi fatte in un giorno, ad ora '+str(max_prima_f), style={'font-size': '14px'}))]),
-    html.Div([previsione()]),
-    html.Div(html.Center([html.Br(), "Nell’ultimo ", html.B("mese"), " sono state somministrate ", html.Mark([html.B(str(max_prima_f)), " prime dosi"], style={'background-color': '#F5C05F'}),
-         " in ", html.B("Italia"), " di cui ", html.Mark([html.B(str(tot_janssen)), " monodose"], style={'background-color': '#F5C05F'}), html.Br(),
-         "A questo ritmo il ", html.B("70% della popolazione"), " sarà vaccinata entro il ", html.Mark([str(month_last_day_vaccine)], style={'background-color': '#F5C05F'})])),
-    html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H2('Effetti dei Vaccini nel Tempo')), html.Br()]),
-    html.Div([dropdown_effetti_decessi_contagi_graph(), html.Br()]),
-    html.Div([html.Div(id='effetti_contagi_graph'), html.Div(id='effetti_decessi_graph')], className='container-1'),
-])
+def layout():
+    refresh_data()
+    return html.Div([
+        html.Link(rel="stylesheet", media="screen and (min-width: 900px)", href="./assets/big.css"),
+        html.Link(rel="stylesheet", media="screen and (max-width: 900px)", href="./assets/small.css"),
+        html.Div([html.Br(), html.Br(), html.Center(html.H1('Vaccini')), html.Br(), html.Br()]),
+        html.Div([vaccine_update()]),
+        html.Div([vaccine_update_bar()]),
+        html.Div(html.Center(html.I([html.Br(), "L'obiettivo della campagna di vaccinazione della popolazione è prevenire le morti da COVID-19 e raggiungere al più presto l'immunità di gregge per il SARS-CoV2", html.Br(), "La campagna è partita il ", html.B("27 dicembre"), ", vista l'approvazione da parte dell'EMA (European Medicines Agency) del primo vaccino anti COVID-19.", html.Br(), "Dopo una fase iniziale, che dovrà essere limitata, per il numero di dosi consegnate, essa si svilupperà in continuo crescendo.", html.Br(), "I vaccini saranno offerti a tutta la popolazione, secondo un ordine di priorità, che tiene conto del rischio di malattia, dei tipi di vaccino e della loro disponibilità."], style={'font-size': 'large'}))),
+        html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H1('Dati del Giorno')), html.Center(html.I('dati aggionati del '+str(last_update), style={'font-size': '14px'})), html.Br()]),
+        html.Div([dropdown_vaccine_daily(), html.Br()]),
+        html.Div(id='vaccine_daily'),
+        html.Div([html.Br(), html.Br(), html.Center(html.H2('Vaccini & Dosi'))]),
+        html.Div([html.Div(id='vaccine_graph'), html.Div(id='dosi_graph')], className='container-1'),
+        html.Div([html.Br(), html.Center(html.H2('Categorie')), html.Center(html.I('I dati sono calcolati sulle somministrazioni delle prime dosi', style={'font-size': '14px'})), html.Br(), html.Br()]),
+        html.Div([category()]),
+        html.Div([category_global()]),
+        html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H2('Vaccini per fascia di età')), html.Center(html.I('I dati sono calcolati sulle somministrazioni delle prime dosi', style={'font-size': '14px'}))]),
+        html.Div([dropdown_vaccine_age_bar()]),
+        html.Div(id='vaccine_age_bar'),
+        html.Div([html.Div(id='category_global')], className='container-1'),
+        html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H1('Previsioni')), html.Center(html.I('Il modello utilizza i dati giornalieri sulle somministrazioni delle prime dosi', style={'font-size': '14px'})), html.Center(html.I('*Media basata sul valore massimo di prime dosi fatte in un giorno, ad ora '+str(max_prima_f), style={'font-size': '14px'}))]),
+        html.Div([previsione()]),
+        html.Div(html.Center([html.Br(), "Nell’ultimo ", html.B("mese"), " sono state somministrate ", html.Mark([html.B(str(max_prima_f)), " prime dosi"], style={'background-color': '#F5C05F'}),
+             " in ", html.B("Italia"), " di cui ", html.Mark([html.B(str(tot_janssen)), " monodose"], style={'background-color': '#F5C05F'}), html.Br(),
+             "A questo ritmo il ", html.B("70% della popolazione"), " sarà vaccinata entro il ", html.Mark([str(month_last_day_vaccine)], style={'background-color': '#F5C05F'})])),
+        html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H2('Effetti dei Vaccini nel Tempo')), html.Br()]),
+        html.Div([dropdown_effetti_decessi_contagi_graph(), html.Br()]),
+        html.Div([html.Div(id='effetti_contagi_graph'), html.Div(id='effetti_decessi_graph')], className='container-1')
+    ])
+
+
+app.layout = layout
 
 if __name__ == '__main__':
     app.run_server(host='0.0.0.0', port=8050, debug=False)
