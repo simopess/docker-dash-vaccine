@@ -899,9 +899,11 @@ def vaccine_age_bar(regione):
         reg_ds1 = ds1.loc[ds['nome_area'] == regione]
         dfa1 = reg_ds1.copy().groupby('fascia_anagrafica').agg({'prima_dose': 'sum', 'seconda_dose': 'sum'}).reset_index()
         figure_age = {
-            'data': [go.Bar(x=[dfa1['prima_dose'][0], dfa1['prima_dose'][1], dfa1['prima_dose'][2], dfa1['prima_dose'][3],
-                               dfa1['prima_dose'][4], dfa1['prima_dose'][5], dfa1['prima_dose'][6], dfa1['prima_dose'][7],
-                               dfa1['prima_dose'][8]],
+            'data': [go.Bar(x=[int(dfa1['prima_dose'][0])-int(dfa1['seconda_dose'][0]), int(dfa1['prima_dose'][1])-int(dfa1['seconda_dose'][1]),
+                               int(dfa1['prima_dose'][2])-int(dfa1['seconda_dose'][2]), int(dfa1['prima_dose'][3])-int(dfa1['seconda_dose'][3]),
+                               int(dfa1['prima_dose'][4])-int(dfa1['seconda_dose'][4]), int(dfa1['prima_dose'][5])-int(dfa1['seconda_dose'][5]),
+                               int(dfa1['prima_dose'][6])-int(dfa1['seconda_dose'][6]), int(dfa1['prima_dose'][7])-int(dfa1['seconda_dose'][7]),
+                               int(dfa1['prima_dose'][8])-int(dfa1['seconda_dose'][8])],
                             y=['16-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80-89', '90+'],
                             orientation='h',
                             marker_color='#F5C05F',
