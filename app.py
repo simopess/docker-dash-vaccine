@@ -846,9 +846,11 @@ def vaccine_age_bar(regione):
     if regione == 'Dato Nazionale':
         refresh_data()
         figure_age = {
-            'data': [go.Bar(x=[dfa['prima_dose'][0], dfa['prima_dose'][1], dfa['prima_dose'][2], dfa['prima_dose'][3],
-                               dfa['prima_dose'][4], dfa['prima_dose'][5], dfa['prima_dose'][6], dfa['prima_dose'][7],
-                               dfa['prima_dose'][8]],
+            'data': [go.Bar(x=[int(dfa['prima_dose'][0])-int(dfa['seconda_dose'][0]), int(dfa['prima_dose'][1])-int(dfa['seconda_dose'][1]),
+                               int(dfa['prima_dose'][2])-int(dfa['seconda_dose'][2]), int(dfa['prima_dose'][3])-int(dfa['seconda_dose'][3]),
+                               int(dfa['prima_dose'][4])-int(dfa['seconda_dose'][4]), int(dfa['prima_dose'][5])-int(dfa['seconda_dose'][5]),
+                               int(dfa['prima_dose'][6])-int(dfa['seconda_dose'][6]), int(dfa['prima_dose'][7])-int(dfa['seconda_dose'][7]),
+                               int(dfa['prima_dose'][8])-int(dfa['seconda_dose'][8])],
                             y=['16-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80-89', '90+'],
                             orientation='h',
                             marker_color='#F5C05F',
@@ -862,10 +864,19 @@ def vaccine_age_bar(regione):
                             marker_color='#E83A8E',
                             name='Seconda Dose'
                             ),
-                     go.Bar(x=dfe['totale_generale'], y=dfe['range_eta'],
+                     go.Bar(x=[int(dfe.loc[dfe.index[0], 'totale_generale']) - int(dfa['prima_dose'][0]),
+                               int(dfe.loc[dfe.index[1], 'totale_generale']) - int(dfa['prima_dose'][1]),
+                               int(dfe.loc[dfe.index[2], 'totale_generale']) - int(dfa['prima_dose'][2]),
+                               int(dfe.loc[dfe.index[3], 'totale_generale']) - int(dfa['prima_dose'][3]),
+                               int(dfe.loc[dfe.index[4], 'totale_generale']) - int(dfa['prima_dose'][4]),
+                               int(dfe.loc[dfe.index[5], 'totale_generale']) - int(dfa['prima_dose'][5]),
+                               int(dfe.loc[dfe.index[6], 'totale_generale']) - int(dfa['prima_dose'][6]),
+                               int(dfe.loc[dfe.index[7], 'totale_generale']) - int(dfa['prima_dose'][7]),
+                               int(dfe.loc[dfe.index[8], 'totale_generale']) - int(dfa['prima_dose'][8])],
+                            y=['16-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80-89', '90+'],
                             orientation='h',
                             marker_color='#6181E8',
-                            name='Popolazione'
+                            name='Non vaccinati'
                             )
                      ],
             'layout': {
