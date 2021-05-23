@@ -70,7 +70,7 @@ def refresh_data():
     global today, last_update, max_prima_f
     global dc, ds, dfa, ddc, dfe, ds_dosi
     global tot_prima_dose, tot_seconda_dose, tot_prima, tot_seconda
-    global percent_mese_death, percent_mese_vaccine_death, percent_mese, percent_mese_vaccine
+    global percent_mese_death, percent_mese
     # read csv for url and get date
     dc = pandas.read_csv(consegne)
     ds = pandas.read_csv(somministrazioni)
@@ -103,16 +103,12 @@ def refresh_data():
     # positive
     month_prima_p = ddc.loc[ddc['data'].between(str(mese)[:10], str(ora)[:10]), ['nuovi_positivi']].sum()
     month_pprima_p = ddc.loc[ddc['data'].between(str(mese - relativedelta(months=1))[:10], str(mese)[:10]), ['nuovi_positivi']].sum()
-    month_prevaccine_p = ddc.loc[ddc['data'].between('2020-11-27', '2020-12-27'), ['nuovi_positivi']].sum()
     percent_mese = round((int(month_prima_p) / month_pprima_p) * 100, 2)
-    percent_mese_vaccine = round((int(month_prima_p) / month_prevaccine_p) * 100, 2)
     # death
     ddc['nuovi_decessi'] = ddc.deceduti.diff().fillna(ddc.deceduti)
     month_prima_d = ddc.loc[ddc['data'].between(str(mese)[:10], str(ora)[:10]), ['nuovi_decessi']].sum()
     month_pprima_d = ddc.loc[ddc['data'].between(str(mese - relativedelta(months=1))[:10], str(mese)[:10]), ['nuovi_decessi']].sum()
-    month_prevaccine_d = ddc.loc[ddc['data'].between('2020-11-27', '2020-12-27'), ['nuovi_decessi']].sum()
     percent_mese_death = round((int(month_prima_d) / month_pprima_d) * 100, 2)
-    percent_mese_vaccine_death = round((int(month_prima_d) / month_prevaccine_d) * 100, 2)
 
     # first dose from the start
     tot_prima = ds_dosi.loc[ds_dosi['data_somministrazione'].between('2020-12-27', str(today)), ['prima_dose']].sum()
@@ -1308,10 +1304,8 @@ def layout():
         html.Div([dropdown_effetti_decessi_contagi_graph(), html.Br()]),
         html.Div([html.Div(id='effetti_contagi_graph'), html.Div(id='effetti_decessi_graph')], className='container-1'),
         # text effect
-        html.Div(html.Center([html.Br(), html.Br(), html.B("Contagi"), " rispetto al ", html.B('mese precedente: '), html.Mark([html.B("%s" %("+" if int(percent_mese) > 100 else "-")+str(float(percent_mese))+'%')], style={'background-color': '#F5C05F'}),
-                              html.B(", contagi"), " rispetto a ", html.B("prima delle vaccinazioni: "), html.Mark([html.B("%s" %("+" if int(percent_mese_vaccine) > 100 else "-")+str(float(percent_mese_vaccine))+'%')], style={'background-color': '#F5C05F'}),
-                              html.Br(), html.Br(), html.B("Decessi"), " rispetto al ", html.B('mese precedente: '), html.Mark([html.B("%s" %("+" if int(percent_mese_death) > 100 else "-")+str(float(percent_mese_death))+'%')], style={'background-color': '#F5C05F'}),
-                              html.B(", decessi"), " rispetto a ", html.B("prima delle vaccinazioni: "), html.Mark([html.B("%s" %("+" if int(percent_mese_vaccine_death) > 100 else "-")+str(float(percent_mese_vaccine_death))+'%')], style={'background-color': '#F5C05F'})])),
+        html.Div(html.Center([html.Div([html.Br(), "Contagi ", html.B("ultimo mese"), "in Italia: ", html.Mark([html.B("%s" %("+" if int(percent_mese) > 100 else "-")+str(float(percent_mese))+'%')], style={'background-color': '#F5C05F'})], className='container-2'),
+                              html.Div([html.Br(), "Decessi ", html.B("ultimo mese"), "in Italia: ", html.Mark([html.B("%s" %("+" if int(percent_mese_death) > 100 else "-")+str(float(percent_mese_death))+'%')], style={'background-color': '#F5C05F'})], className='container-2')], className='container-1')),
     ])
 
 app.layout = layout
