@@ -1304,8 +1304,8 @@ def layout():
         html.Div([dropdown_effetti_decessi_contagi_graph(), html.Br()]),
         html.Div([html.Div(id='effetti_contagi_graph'), html.Div(id='effetti_decessi_graph')], className='container-1'),
         # text effect
-        html.Div(html.Center([html.Div([html.Br(), "Contagi ", html.B("ultimo mese"), "in Italia: ", html.Mark([html.B("%s" %("+" if int(percent_mese) > 100 else "-")+str(float(percent_mese))+'%')], style={'background-color': '#F5C05F'})], className='container-2'),
-                              html.Div([html.Br(), "Decessi ", html.B("ultimo mese"), "in Italia: ", html.Mark([html.B("%s" %("+" if int(percent_mese_death) > 100 else "-")+str(float(percent_mese_death))+'%')], style={'background-color': '#F5C05F'})], className='container-2')], className='container-1')),
+        html.Div(html.Center([html.Div([html.Br(), "Contagi ", html.B("ultimo mese"), " in Italia: ", html.Mark([html.B("%s" %("+" if int(percent_mese) > 100 else "-")+str(float(percent_mese))+'%')], style={'background-color': '#F5C05F'})], className='container-2'),
+                              html.Div([html.Br(), "Decessi ", html.B("ultimo mese"), " in Italia: ", html.Mark([html.B("%s" %("+" if int(percent_mese_death) > 100 else "-")+str(float(percent_mese_death))+'%')], style={'background-color': '#F5C05F'})], className='container-2')], className='container-1')),
     ])
 
 app.layout = layout
