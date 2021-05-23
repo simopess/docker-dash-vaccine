@@ -9,7 +9,6 @@ import plotly.graph_objs as go
 import pandas
 from dash.dependencies import Input, Output
 
-
 # data URL
 consegne = 'https://raw.githubusercontent.com/italia/covid19-opendata-vaccini/master/dati/consegne-vaccini-latest.csv'
 somministrazioni = 'https://raw.githubusercontent.com/italia/covid19-opendata-vaccini/master/dati/somministrazioni-vaccini-latest.csv'
@@ -20,8 +19,13 @@ population = 0
 
 last_update = ''  # last update
 max_prima_f = ''  # max first dose in 1day
+tot_janssenf = '' # tot only 1 dose format
 tot_janssen = ''  # tot only 1 dose
 month_last_day_vaccine = ''  # 70% population vaccine date
+percent_mese = ''  # percentage
+percent_mese_vaccine = ''
+percent_mese_death = ''  # percentage death
+percent_mese_vaccine_death = ''
 pandas.options.mode.chained_assignment = None  # default='warn'
 
 # read csv for url and get date
@@ -66,6 +70,7 @@ def refresh_data():
     global today, last_update, max_prima_f
     global dc, ds, dfa, ddc, dfe, ds_dosi
     global tot_prima_dose, tot_seconda_dose, tot_prima, tot_seconda
+    global percent_mese_death, percent_mese_vaccine_death, percent_mese, percent_mese_vaccine
     # read csv for url and get date
     dc = pandas.read_csv(consegne)
     ds = pandas.read_csv(somministrazioni)
@@ -91,6 +96,23 @@ def refresh_data():
     # max first
     max_prima = int(max(ds_dosi['prima_dose']))
     max_prima_f = '{:,}'.format(max_prima).replace(',', '.')  # format max first dose
+    # percentage death-positive
+    date_format = "%Y-%m-%d"  # date format
+    ora = datetime.strptime(str(today), date_format)
+    mese = ora - relativedelta(months=1)
+    # positive
+    month_prima_p = ddc.loc[ddc['data'].between(str(mese)[:10], str(ora)[:10]), ['nuovi_positivi']].sum()
+    month_pprima_p = ddc.loc[ddc['data'].between(str(mese - relativedelta(months=1))[:10], str(mese)[:10]), ['nuovi_positivi']].sum()
+    month_prevaccine_p = ddc.loc[ddc['data'].between('2020-11-27', '2020-12-27'), ['nuovi_positivi']].sum()
+    percent_mese = round((int(month_prima_p) / month_pprima_p) * 100, 2)
+    percent_mese_vaccine = round((int(month_prima_p) / month_prevaccine_p) * 100, 2)
+    # death
+    ddc['nuovi_decessi'] = ddc.deceduti.diff().fillna(ddc.deceduti)
+    month_prima_d = ddc.loc[ddc['data'].between(str(mese)[:10], str(ora)[:10]), ['nuovi_decessi']].sum()
+    month_pprima_d = ddc.loc[ddc['data'].between(str(mese - relativedelta(months=1))[:10], str(mese)[:10]), ['nuovi_decessi']].sum()
+    month_prevaccine_d = ddc.loc[ddc['data'].between('2020-11-27', '2020-12-27'), ['nuovi_decessi']].sum()
+    percent_mese_death = round((int(month_prima_d) / month_pprima_d) * 100, 2)
+    percent_mese_vaccine_death = round((int(month_prima_d) / month_prevaccine_d) * 100, 2)
 
     # first dose from the start
     tot_prima = ds_dosi.loc[ds_dosi['data_somministrazione'].between('2020-12-27', str(today)), ['prima_dose']].sum()
@@ -115,8 +137,8 @@ def get_dropdown_data():
 
 # total vaccine status
 def vaccine_update():
-    refresh_data()
-    global tot_janssen
+    #refresh_data()
+    global tot_janssen, tot_janssenf
     # percentage
     janssen = ds.loc[ds['fornitore'] == 'Janssen'].groupby('data_somministrazione').agg({'prima_dose': 'sum'}).reset_index()
     tot_janssen = janssen.loc[janssen['data_somministrazione'].between('2021-04-05', str(today)), ['prima_dose']].sum()
@@ -127,7 +149,7 @@ def vaccine_update():
     tjanssen = round((int(tot_janssen) / 60360000) * 100, 2)
     # formating
     tot_prima_dose = '{:,}'.format(int(prima)).replace(',', '.')
-    tot_janssen = '{:,}'.format(int(tot_janssen)).replace(',', '.')
+    tot_janssenf = '{:,}'.format(int(tot_janssen)).replace(',', '.')
     return html.Div([
         html.Div([
             html.Table([
@@ -179,7 +201,7 @@ def vaccine_update():
                 # Body
                 html.Tr([
                     html.Td(
-                        html.H1(tot_janssen, style={'color': '#E83A8E', 'font-size': '45px'})
+                        html.H1(tot_janssenf, style={'color': '#E83A8E', 'font-size': '45px'})
                     ),
                 ]),
                 # Percentage
@@ -194,12 +216,12 @@ def vaccine_update():
 
 
 def vaccine_update_bar():
-    refresh_data()
+    #refresh_data()
     return html.Div([
         html.Div([
             dcc.Graph(
                 figure={
-                    'data': [go.Bar(x=[60360000, 50773718, int(tot_prima), int(tot_seconda)],
+                    'data': [go.Bar(x=[60360000, 50773718, int(tot_prima), int(tot_seconda)+int(tot_janssen)],
                                     y=['Popolazione', 'Platea', 'Prima dose', 'Vaccinati'],
                                     orientation='h',
                                     marker_color=['#6181E8', '#5EAEFF', '#F5C05F', '#E83A8E'])
@@ -243,7 +265,7 @@ def dropdown_vaccine_daily():
 def vaccine_daily(regione):
     # total data
     if regione == 'Dato Nazionale':
-        refresh_data()
+        #refresh_data()
         tot_consegne = dc.loc[dc['data_consegna'].between('2020-12-27', str(today)), ['numero_dosi']].sum()
         tot_vaccini = int(tot_prima) + int(tot_seconda)
         # today data
@@ -404,7 +426,7 @@ def vaccine_daily(regione):
 # vaccine and doses graph
 def vaccine_graph(regione):
     if regione == 'Dato Nazionale':
-        refresh_data()
+        #refresh_data()
         # vaccine
         ds_pfizer = ds.loc[ds['fornitore'] == 'Pfizer/BioNTech'].groupby('data_somministrazione').agg(
             {'prima_dose': 'sum', 'seconda_dose': 'sum'}).reset_index()
@@ -485,7 +507,7 @@ def vaccine_graph(regione):
 # vaccine and doses graph
 def dosi_graph(regione):
     if regione == 'Dato Nazionale':
-        refresh_data()
+        #refresh_data()
         prima_seconda = ds.groupby('data_somministrazione').agg({'prima_dose': 'sum', 'seconda_dose': 'sum'}).reset_index()
     else:
         # vaccine
@@ -533,7 +555,7 @@ def dosi_graph(regione):
 
 # category
 def category():
-    refresh_data()
+    #refresh_data()
     # total data
     # sanitari
     tot_sanitario = ds_dosi.loc[ds_dosi['data_somministrazione'].between('2020-12-27', str(today)), ['categoria_operatori_sanitari_sociosanitari']].sum()
@@ -759,7 +781,7 @@ def category():
 
 # graph tot category
 def category_global():
-    refresh_data()
+    #refresh_data()
     return html.Div(  # main div
         dbc.Container([
             dbc.Row(
@@ -844,7 +866,7 @@ def dropdown_vaccine_age_bar():
     [Input('dropdown_vaccine_age_bar', 'value')])
 def vaccine_age_bar(regione):
     if regione == 'Dato Nazionale':
-        refresh_data()
+        #refresh_data()
         figure_age = {
             'data': [go.Bar(x=[int(dfa['prima_dose'][0])-int(dfa['seconda_dose'][0]), int(dfa['prima_dose'][1])-int(dfa['seconda_dose'][1]),
                                int(dfa['prima_dose'][2])-int(dfa['seconda_dose'][2]), int(dfa['prima_dose'][3])-int(dfa['seconda_dose'][3]),
@@ -942,7 +964,7 @@ def vaccine_age_bar(regione):
 
 # forecast
 def previsione():
-    refresh_data()
+    #refresh_data()
     global month_last_day_vaccine
     date_format = "%Y-%m-%d"  # date format
     ora = datetime.strptime(str(today), date_format)
@@ -1020,6 +1042,79 @@ def previsione():
         ])
     )
 
+# dropdown
+def get_dropdown_data2():
+    selections = []
+    for reg in regions:
+        selections.append(dict(label=reg, value=reg))
+    return selections
+
+def dropdown_velocity_dosi_graph():
+    return html.Div([
+        html.Div([
+            dbc.Container([
+                dbc.Row([
+                    dbc.Col(
+                        dcc.Dropdown(id='dropdown_velocity_dosi_graph', multi=True,
+                                     options=get_dropdown_data2(), clearable=False, searchable=False,
+                                     persistence=True, persistence_type='session', value='Lombardia'
+                                     ), style={'margin-left': 'auto', 'margin-right': 'auto'}, width=12, lg=5,
+                        className='mt-2')
+                ])
+            ])
+        ])
+    ])
+
+# effect contagi
+@app.callback(
+    Output('velocity_dosi_graph', 'children'),
+    [Input('dropdown_velocity_dosi_graph', 'value')])
+def velocity_dosi_graph(regione):
+    ds1 = pandas.read_csv(somministrazioni)
+    data = ['']
+    traces = ['']
+    if type(regione) == str:
+        regione = [regione]
+
+    for reg in regione:
+        ds2 = ds1[ds1['nome_area'] == reg]
+        ds_dosi_velocity = ds2.groupby('data_somministrazione').agg({'prima_dose': 'sum', 'nome_area': 'last'}).reset_index()
+        data.append(ds_dosi_velocity)
+    data.pop(0)
+
+    for dati in data:
+        traces.append(go.Scatter({'x': dati['data_somministrazione'], 'y': dati['prima_dose'], 'mode': 'lines',
+                                  'name': f"{dati['nome_area'].iloc[0]}"}))
+    traces.pop(0)
+
+    return html.Div([
+        dbc.Container([
+            dbc.Row(
+                dbc.Col(
+                    dcc.Graph(
+                        figure={
+                            'data': traces,
+                            'layout': {
+                                'xaxis': dict(
+                                    rangeselector=dict(buttons=slider_button),
+                                    rangeslider=dict(visible=False),
+                                    type='date'
+                                ),
+                                'legend': dict(
+                                    orientation="h",
+                                    xanchor="center",
+                                    x=0.5,
+                                    y=-0.2
+                                )
+                            }
+                        },
+                        config=chart_config
+                    )
+                )
+            )
+        ])
+    ], className='container-1')
+
 
 # dropdown select
 def dropdown_effetti_decessi_contagi_graph():
@@ -1045,7 +1140,7 @@ def dropdown_effetti_decessi_contagi_graph():
     [Input('dropdown_effetti_decessi_contagi_graph', 'value')])
 def effetti_contagi_graph(regione):
     if regione == 'Dato Nazionale':
-        refresh_data()
+        #refresh_data()
         dec = ddc
         dec['nuovi_positivi_avg'] = ddc['nuovi_positivi'].rolling(30).mean()
     else:
@@ -1058,6 +1153,7 @@ def effetti_contagi_graph(regione):
         reg_ddcr = ddcr.loc[ddcr['denominazione_regione'] == regione]
         dec = reg_ddcr.copy()
         dec['nuovi_positivi_avg'] = dec['nuovi_positivi'].rolling(30).mean()
+
     return html.Div([
         dbc.Container([
             dbc.Row(
@@ -1107,7 +1203,7 @@ def effetti_contagi_graph(regione):
     [Input('dropdown_effetti_decessi_contagi_graph', 'value')])
 def effetti_decessi_graph(regione):
     if regione == 'Dato Nazionale':
-        refresh_data()
+        #refresh_data()
         ded = ddc
         ded['nuovi_decessi'] = ded.deceduti.diff().fillna(ded.deceduti)
         ded['nuovi_decessi'].iloc[121] = 31  # error -31
@@ -1124,6 +1220,7 @@ def effetti_decessi_graph(regione):
         ded = reg_ddcr.copy()
         ded['nuovi_decessi'] = ded.deceduti.diff().fillna(ded.deceduti)
         ded['nuovi_decessi_avg'] = ded['nuovi_decessi'].rolling(30).mean()
+
     return html.Div([
         dbc.Container([
             dbc.Row(
@@ -1165,38 +1262,57 @@ def effetti_decessi_graph(regione):
         ])
     ], className='container-2')
 
-
 def layout():
     refresh_data()
     return html.Div([
+        # style
         html.Link(rel="stylesheet", media="screen and (min-width: 900px)", href="./assets/big.css"),
         html.Link(rel="stylesheet", media="screen and (max-width: 900px)", href="./assets/small.css"),
+        # vaccine total
         html.Div([html.Br(), html.Br(), html.Center(html.H1('Vaccini')), html.Br(), html.Br()]),
         html.Div([vaccine_update()]),
-        html.Div([vaccine_update_bar()]),
-        html.Div(html.Center(html.I([html.Br(), "L'obiettivo della campagna di vaccinazione della popolazione è prevenire le morti da COVID-19 e raggiungere al più presto l'immunità di gregge per il SARS-CoV2", html.Br(), "La campagna è partita il ", html.B("27 dicembre"), ", vista l'approvazione da parte dell'EMA (European Medicines Agency) del primo vaccino anti COVID-19.", html.Br(), "Dopo una fase iniziale, che dovrà essere limitata, per il numero di dosi consegnate, essa si svilupperà in continuo crescendo.", html.Br(), "I vaccini saranno offerti a tutta la popolazione, secondo un ordine di priorità, che tiene conto del rischio di malattia, dei tipi di vaccino e della loro disponibilità."], style={'font-size': 'large'}))),
+        html.Div([vaccine_update_bar()]),  # orizzonatl bar
+        # text
+        html.Div(html.Center(html.I([html.Br(), "L'obiettivo della campagna di vaccinazione della popolazione è prevenire le morti da COVID-19 e raggiungere al più presto ", html.B("l'immunità di gregge"), " per il SARS-CoV2", html.Br(), "La campagna è partita il ", html.B("27 dicembre"), ", vista l'approvazione da parte dell'EMA del primo vaccino anti COVID-19.", html.Br(), "Dopo una fase iniziale, che dovrà essere limitata, per il numero di dosi consegnate, essa si svilupperà in continuo crescendo.", html.Br(), "I vaccini saranno offerti a ", html.B("tutta la popolazione"), ", secondo un ordine di ", html.B("priorità"), ", che tiene conto del rischio di ", html.B("malattia"), ", dei tipi di ", html.B("vaccino"), " e della loro ", html.B("disponibilità")], style={'font-size': 'large'}))),
+        # daily data
         html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H1('Dati del Giorno')), html.Center(html.I('dati aggionati del '+str(last_update), style={'font-size': '14px'})), html.Br()]),
-        html.Div([dropdown_vaccine_daily(), html.Br()]),
+        html.Div([dropdown_vaccine_daily(), html.Br()]),  # dropdown
         html.Div(id='vaccine_daily'),
+        # vaccine and doses
         html.Div([html.Br(), html.Br(), html.Center(html.H2('Vaccini & Dosi'))]),
         html.Div([html.Div(id='vaccine_graph'), html.Div(id='dosi_graph')], className='container-1'),
+        # image
+        html.Div(html.Center([html.Div([html.Img(src='./assets/ddoses.png', width="45", style={'vertical-align': 'bottom'}), html.B(' 2'), ' Dosi: ', html.I('Pfizer, Moderna e AstraZeneca', style={'font-size': '14px'})], className='container-2'), html.Div([html.Img(src='./assets/doses.png', width="30", style={'vertical-align': 'bottom'}), html.B(' 1'), ' Dose:', html.I(' Janssen', style={'font-size': '14px'})], className='container-2')], className='container-1')),
+        # category
         html.Div([html.Br(), html.Center(html.H2('Categorie')), html.Center(html.I('I dati sono calcolati sulle somministrazioni delle prime dosi', style={'font-size': '14px'})), html.Br(), html.Br()]),
         html.Div([category()]),
         html.Div([category_global()]),
+        # age
         html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H2('Vaccini per fascia di età')), html.Center(html.I('I dati sono calcolati sulle somministrazioni delle prime dosi', style={'font-size': '14px'}))]),
         html.Div([dropdown_vaccine_age_bar()]),
         html.Div(id='vaccine_age_bar'),
         html.Div([html.Div(id='category_global')], className='container-1'),
+        # forecast
         html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H1('Previsioni')), html.Center(html.I('Il modello utilizza i dati giornalieri sulle somministrazioni delle prime dosi', style={'font-size': '14px'})), html.Center(html.I('*Media basata sul valore massimo di prime dosi fatte in un giorno, ad ora '+str(max_prima_f), style={'font-size': '14px'}))]),
         html.Div([previsione()]),
-        html.Div(html.Center([html.Br(), "Nell’ultimo ", html.B("mese"), " sono state somministrate ", html.Mark([html.B(str(max_prima_f)), " prime dosi"], style={'background-color': '#F5C05F'}),
-             " in ", html.B("Italia"), " di cui ", html.Mark([html.B(str(tot_janssen)), " monodose"], style={'background-color': '#F5C05F'}), html.Br(),
+        # text forecast
+        html.Div(html.Center([html.Br(), "Nell'ultimo ", html.B("mese"), " sono state somministrate ", html.Mark([html.B(str(max_prima_f)), " prime dosi"], style={'background-color': '#F5C05F'}),
+             " in ", html.B("Italia"), " di cui ", html.Mark([html.B(str(tot_janssenf)), " monodose"], style={'background-color': '#F5C05F'}), html.Br(),
              "A questo ritmo il ", html.B("70% della popolazione"), " sarà vaccinata entro il ", html.Mark([str(month_last_day_vaccine)], style={'background-color': '#F5C05F'})])),
+        # velocity
+        html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H2('Velocità vaccinazioni')), html.Center(html.I('I dati sono calcolati sulle somministrazioni delle prime dosi', style={'font-size': '14px'}))]),
+        html.Div([dropdown_velocity_dosi_graph()]),
+        html.Div([html.Div(id='velocity_dosi_graph')], className='container-1'),
+        # effect
         html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H2('Effetti dei Vaccini nel Tempo')), html.Br()]),
         html.Div([dropdown_effetti_decessi_contagi_graph(), html.Br()]),
-        html.Div([html.Div(id='effetti_contagi_graph'), html.Div(id='effetti_decessi_graph')], className='container-1')
+        html.Div([html.Div(id='effetti_contagi_graph'), html.Div(id='effetti_decessi_graph')], className='container-1'),
+        # text effect
+        html.Div(html.Center([html.Br(), html.Br(), html.B("Contagi"), " rispetto al ", html.B('mese precedente: '), html.Mark([html.B("%s" %("+" if int(percent_mese) > 100 else "-")+str(float(percent_mese))+'%')], style={'background-color': '#F5C05F'}),
+                              html.B(", contagi"), " rispetto a ", html.B("prima delle vaccinazioni: "), html.Mark([html.B("%s" %("+" if int(percent_mese_vaccine) > 100 else "-")+str(float(percent_mese_vaccine))+'%')], style={'background-color': '#F5C05F'}),
+                              html.Br(), html.Br(), html.B("Decessi"), " rispetto al ", html.B('mese precedente: '), html.Mark([html.B("%s" %("+" if int(percent_mese_death) > 100 else "-")+str(float(percent_mese_death))+'%')], style={'background-color': '#F5C05F'}),
+                              html.B(", decessi"), " rispetto a ", html.B("prima delle vaccinazioni: "), html.Mark([html.B("%s" %("+" if int(percent_mese_vaccine_death) > 100 else "-")+str(float(percent_mese_vaccine_death))+'%')], style={'background-color': '#F5C05F'})])),
     ])
-
 
 app.layout = layout
 
