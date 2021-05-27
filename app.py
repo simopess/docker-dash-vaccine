@@ -1258,6 +1258,80 @@ def effetti_decessi_graph(regione):
         ])
     ], className='container-2')
 
+
+# effect contagi
+def riduzione_graph():
+    ds1 = pandas.read_csv(somministrazioni)
+    ddcr = pandas.read_csv(decessi_contagi_regioni)
+    date_format = "%Y-%m-%d"  # date format
+    ora = datetime.strptime(str(today), date_format)
+    traces = ['']
+
+    for reg in regions:
+        # contagi
+        if reg == 'Friuli-Venezia Giulia': reg1 = 'Friuli Venezia Giulia'
+        elif reg == 'Provincia Autonoma Bolzano / Bozen': reg1 = 'P.A. Bolzano'
+        elif reg == 'Provincia Autonoma Trento': reg1 = 'P.A. Trento'
+        elif reg == "Valle d'Aosta / Vallée d'Aoste": reg1 = "Valle d'Aosta"
+        else: reg1 = reg
+        # population
+        if reg1 == 'Abruzzo': popolazione = 1312000
+        elif reg1 == 'Basilicata': popolazione = 562869
+        elif reg1 == 'Calabria': popolazione = 1947000
+        elif reg1 == 'Campania': popolazione = 5802000
+        elif reg1 == 'Emilia-Romagna': popolazione = 4459000
+        elif reg1 == 'Friuli Venezia Giulia': popolazione = 1215000
+        elif reg1 == 'Lazio': popolazione = 5879000
+        elif reg1 == 'Liguria': popolazione = 1551000
+        elif reg1 == 'Lombardia': popolazione = 10060000
+        elif reg1 == 'Marche': popolazione = 1525000
+        elif reg1 == 'Molise': popolazione = 305617
+        elif reg1 == 'P.A. Bolzano': popolazione = 520891
+        elif reg1 == 'P.A. Trento': popolazione = 538223
+        elif reg1 == 'Piemonte': popolazione = 4356000
+        elif reg1 == 'Puglia': popolazione = 4029000
+        elif reg1 == 'Sardegna': popolazione = 1640000
+        elif reg1 == 'Sicilia': popolazione = 5000000
+        elif reg1 == 'Toscana': popolazione = 3730000
+        elif reg1 == 'Umbria': popolazione = 882015
+        elif reg1 == "Valle d'Aosta": popolazione = 125666
+        elif reg1 == 'Veneto': popolazione = 4906000
+        # data contagi
+        ddcr2 = ddcr.loc[ddcr['denominazione_regione'] == reg1]
+        ddcr_contagi = ddcr2.loc[ddcr2['data'].between(str(ora-timedelta(days=7))[:10], str(ora)[:10]), ['nuovi_positivi']].sum()
+        positive = round((int(ddcr_contagi)*100000)/popolazione, 2)
+        # doses
+        ds2 = ds1[ds1['nome_area'] == reg]
+        ds_dosi_velocity = ds2.groupby('data_somministrazione').agg({'prima_dose': 'sum', 'nome_area': 'last'}).reset_index()
+        doses = ds_dosi_velocity.loc[ds_dosi_velocity['data_somministrazione'].between('2020-12-27', str(today)), ['prima_dose']].sum()
+        doses_percent = round((int(doses) / popolazione) * 100, 2)
+        # traces
+        traces.append(go.Scatter({'x': [float(positive)], 'y': [float(doses_percent)], 'mode': 'markers+text', 'marker': dict(color='crimson', size=12), 'text': f"{reg1}", 'textfont':dict(color='#B01B3E'), 'textposition': 'middle right', 'name': f"{reg1}"}))
+    traces.pop(0)
+
+    return html.Div([
+        dbc.Container([
+            dbc.Row(
+                dbc.Col(
+                    dcc.Graph(
+                        figure={
+                            'data': traces,
+                            'layout': {
+                                'xaxis': dict(
+                                    rangeslider=dict(visible=False),
+                                ),
+                                'yaxis': {'title': 'Percentuale di Vaccinati'},
+                                'xaxis': {'title': 'Nuovi positivi'},
+                                'showlegend': False,
+                            }
+                        },
+                        config=chart_config
+                    )
+                )
+            )
+        ])
+    ], className='container-1')
+
 def layout():
     refresh_data()
     return html.Div([
@@ -1305,7 +1379,10 @@ def layout():
         html.Div([html.Div(id='effetti_contagi_graph'), html.Div(id='effetti_decessi_graph')], className='container-1'),
         # text effect
         html.Div(html.Center([html.Div([html.Br(), "Contagi ", html.B("ultimo mese"), " in Italia: ", html.Mark([html.B("%s" %("+" if int(percent_mese) > 100 else "-")+str(float(percent_mese))+'%')], style={'background-color': '#F5C05F'})], className='container-2'),
-                              html.Div([html.Br(), "Decessi ", html.B("ultimo mese"), " in Italia: ", html.Mark([html.B("%s" %("+" if int(percent_mese_death) > 100 else "-")+str(float(percent_mese_death))+'%')], style={'background-color': '#F5C05F'})], className='container-2')], className='container-1')),
+                              html.Div([html.Br(), "Decessi ", html.B("ultimo mese"), " in Italia: ", html.Mark([html.B("%s" %("+" if int(percent_mese_death) > 100 else "-")+str(float(percent_mese_death))+'%')], style={'background-color': '#F5C05F'})], className='container-2'),
+                              html.Div([html.Br(), html.Br(), html.Br(), html.H4('Quanto le vaccinazioni stanno contribuendo veramente alla riduzione dei contagi?'), html.I("I dati sono calcolati sulla percentuale di popolazione vaccinata e sull'incidenza dei contagi, nell'ultima settimana, per 100.000 abitanti", style={'font-size': '14px'})], className='container-1')], className='container-1')),
+        # text riduzione
+        html.Div([html.Br(), riduzione_graph()]),
     ])
 
 app.layout = layout
