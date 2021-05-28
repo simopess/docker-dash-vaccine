@@ -1059,9 +1059,8 @@ def layout():
         html.Div([html.Br(), html.Br(), html.Center(html.H2('Vaccini & Dosi'))]),
         html.Div([html.Div(id='vaccine_graph'), html.Div(id='dosi_graph')], className='container-1'),
         # image
-        html.Div(html.Center([html.Div([html.Img(src='./assets/ddoses.png', width="45", style={'vertical-align': 'bottom'}), html.B(' 2'), ' Dosi: ', html.I('Pfizer, Moderna e AstraZeneca', style={'font-size': '14px'})], className='container-2'), html.Div([html.Img(src='./assets/doses.png', width="30", style={'vertical-align': 'bottom'}), html.B(' 1'), ' Dose:', html.I(' Janssen', style={'font-size': '14px'})], className='container-2')], className='container-1')),
-        # age
-        html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H2('Vaccini per fascia di età')), html.Center(html.I('I dati sono calcolati sulle somministrazioni delle prime dosi', style={'font-size': '14px'}))]),
+        html.Div(html.Center([html.Div([html.Img(src='./assets/ddoses.png', width="45", style={'vertical-align': 'bottom'}), html.B(' 2'), ' Dosi: ', html.I('Pfizer, Moderna e AstraZeneca', style={'font-size': '14px'})], className='container-2'), html.Div([html.Img(src='./assets/doses.png', width="30", style={'vertical-align': 'bottom'}), html.B(' 1'), ' Dose:', html.I(' Janssen', style={'font-size': '14px'})], className='container-2'),
+                              html.Div([html.Br(), html.Br(), html.Br(), html.H2('Vaccini per fascia di età'), html.I('I dati sono calcolati sulle somministrazioni delle prime dosi', style={'font-size': '14px'})], className='container-1')], className='container-1')),
         html.Div([dropdown_vaccine_age_bar()]),
         html.Div(id='vaccine_age_bar'),
         html.Div([html.Div(id='category_global')], className='container-1'),
