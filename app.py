@@ -11,10 +11,10 @@ from dash.dependencies import Input, Output
 
 # data URL
 consegne = 'https://raw.githubusercontent.com/italia/covid19-opendata-vaccini/master/dati/consegne-vaccini-latest.csv'
+fascia_anagrafica = 'https://raw.githubusercontent.com/italia/covid19-opendata-vaccini/master/dati/platea.csv'
 somministrazioni = 'https://raw.githubusercontent.com/italia/covid19-opendata-vaccini/master/dati/somministrazioni-vaccini-latest.csv'
 decessi_contagi = 'https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-andamento-nazionale/dpc-covid19-ita-andamento-nazionale.csv'
 decessi_contagi_regioni = 'https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-regioni/dpc-covid19-ita-regioni.csv'
-fascia_anagrafica = 'https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-statistici-riferimento/popolazione-istat-regione-range.csv'
 population = 0
 
 last_update = ''  # last update
@@ -38,8 +38,7 @@ regions = ds['nome_area'].drop_duplicates().tolist()  # all regions
 
 plotly_js_minified = ['https://cdn.plot.ly/plotly-basic-latest.min.js']
 app = dash.Dash(__name__, external_scripts=plotly_js_minified,
-                meta_tags=[{'name': 'viewport',
-                            'content': 'width=device-width, initial-scale=0.8, maximum-scale=1.2, minimum-scale=0.5'}],
+                meta_tags=[{'name': 'viewport', 'content': 'width=device-width, initial-scale=0.8, maximum-scale=1.2, minimum-scale=0.5'}],
                 requests_pathname_prefix='/vaccine/',
                 routes_pathname_prefix='/vaccine/')
 app.title = 'Dashboard Vaccini'
@@ -68,7 +67,7 @@ slider_button = list([
 # refresh data
 def refresh_data():
     global today, last_update, max_prima_f
-    global dc, ds, dfa, ddc, dfe, ds_dosi
+    global dc, ds, dfa, ddc, dfe, tot_dfe, ds_dosi
     global tot_prima_dose, tot_seconda_dose, tot_prima, tot_seconda
     global percent_mese_death, percent_mese
     # read csv for url and get date
@@ -114,8 +113,7 @@ def refresh_data():
     tot_seconda_dose = '{:,}'.format(int(tot_seconda)).replace(',', '.')
     # age
     dfa = ds.groupby('fascia_anagrafica').agg({'prima_dose': 'sum', 'seconda_dose': 'sum'}).reset_index()
-    dfe = dfe.groupby('range_eta').agg({'totale_generale': 'sum'}).reset_index()
-    dfe = dfe[1:]  # remove 0-15
+    tot_dfe = dfe.groupby('fascia_anagrafica').agg({'totale_popolazione': 'sum'}).reset_index()
 
 
 # dropdown
@@ -569,36 +567,34 @@ def dropdown_vaccine_age_bar():
     [Input('dropdown_vaccine_age_bar', 'value')])
 def vaccine_age_bar(regione):
     if regione == 'Dato Nazionale':
-        #refresh_data()
         figure_age = {
             'data': [go.Bar(x=[int(dfa['prima_dose'][0])-int(dfa['seconda_dose'][0]), int(dfa['prima_dose'][1])-int(dfa['seconda_dose'][1]),
                                int(dfa['prima_dose'][2])-int(dfa['seconda_dose'][2]), int(dfa['prima_dose'][3])-int(dfa['seconda_dose'][3]),
                                int(dfa['prima_dose'][4])-int(dfa['seconda_dose'][4]), int(dfa['prima_dose'][5])-int(dfa['seconda_dose'][5]),
-                               int(dfa['prima_dose'][6])-int(dfa['seconda_dose'][6]), int(dfa['prima_dose'][7])-int(dfa['seconda_dose'][7]),
-                               int(dfa['prima_dose'][8])-int(dfa['seconda_dose'][8])],
-                            y=['16-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80-89', '90+'],
+                               int(dfa['prima_dose'][6])-int(dfa['seconda_dose'][6]),
+                               int(int(dfa['prima_dose'][7])-int(dfa['seconda_dose'][7])) + int(int(dfa['prima_dose'][8])-int(dfa['seconda_dose'][8]))],
+                            y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
                             marker_color='#F5C05F',
                             name='Prima Dose'
                             ),
                      go.Bar(x=[dfa['seconda_dose'][0], dfa['seconda_dose'][1], dfa['seconda_dose'][2],
                                dfa['seconda_dose'][3], dfa['seconda_dose'][4], dfa['seconda_dose'][5],
-                               dfa['seconda_dose'][6], dfa['seconda_dose'][7], dfa['seconda_dose'][8]],
-                            y=['16-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80-89', '90+'],
+                               dfa['seconda_dose'][6], int(dfa['seconda_dose'][7]+dfa['seconda_dose'][8])],
+                            y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
                             marker_color='#E83A8E',
-                            name='Seconda Dose'
+                            name='Vaccinati'
                             ),
-                     go.Bar(x=[int(dfe.loc[dfe.index[0], 'totale_generale']) - int(dfa['prima_dose'][0]),
-                               int(dfe.loc[dfe.index[1], 'totale_generale']) - int(dfa['prima_dose'][1]),
-                               int(dfe.loc[dfe.index[2], 'totale_generale']) - int(dfa['prima_dose'][2]),
-                               int(dfe.loc[dfe.index[3], 'totale_generale']) - int(dfa['prima_dose'][3]),
-                               int(dfe.loc[dfe.index[4], 'totale_generale']) - int(dfa['prima_dose'][4]),
-                               int(dfe.loc[dfe.index[5], 'totale_generale']) - int(dfa['prima_dose'][5]),
-                               int(dfe.loc[dfe.index[6], 'totale_generale']) - int(dfa['prima_dose'][6]),
-                               int(dfe.loc[dfe.index[7], 'totale_generale']) - int(dfa['prima_dose'][7]),
-                               int(dfe.loc[dfe.index[8], 'totale_generale']) - int(dfa['prima_dose'][8])],
-                            y=['16-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80-89', '90+'],
+                     go.Bar(x=[int(tot_dfe.loc[tot_dfe.index[0], 'totale_popolazione']) - int(dfa['prima_dose'][0]),
+                               int(tot_dfe.loc[tot_dfe.index[1], 'totale_popolazione']) - int(dfa['prima_dose'][1]),
+                               int(tot_dfe.loc[tot_dfe.index[2], 'totale_popolazione']) - int(dfa['prima_dose'][2]),
+                               int(tot_dfe.loc[tot_dfe.index[3], 'totale_popolazione']) - int(dfa['prima_dose'][3]),
+                               int(tot_dfe.loc[tot_dfe.index[4], 'totale_popolazione']) - int(dfa['prima_dose'][4]),
+                               int(tot_dfe.loc[tot_dfe.index[5], 'totale_popolazione']) - int(dfa['prima_dose'][5]),
+                               int(tot_dfe.loc[tot_dfe.index[6], 'totale_popolazione']) - int(dfa['prima_dose'][6]),
+                               int(tot_dfe.loc[tot_dfe.index[7], 'totale_popolazione']) - int(dfa['prima_dose'][7])],
+                            y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
                             marker_color='#6181E8',
                             name='Non vaccinati'
@@ -620,28 +616,47 @@ def vaccine_age_bar(regione):
             },
         }
     else:
+        if regione == 'Provincia Autonoma Bolzano / Bozen': reg = 'P.A. Bolzano'
+        elif regione == 'Provincia Autonoma Trento': reg = 'P.A. Trento'
+        elif regione == "Valle d'Aosta / Vallée d'Aoste": reg = "Valle d'Aosta"
+        else: reg = regione
         ds1 = pandas.read_csv(somministrazioni)
-        reg_ds1 = ds1.loc[ds['nome_area'] == regione]
+        dfe1 = pandas.read_csv(fascia_anagrafica)
+        reg_ds1 = ds1.loc[ds1['nome_area'] == regione]
         dfa1 = reg_ds1.copy().groupby('fascia_anagrafica').agg({'prima_dose': 'sum', 'seconda_dose': 'sum'}).reset_index()
+        reg_dfe1 = dfe1.loc[dfe1['nome_area'] == reg]
         figure_age = {
             'data': [go.Bar(x=[int(dfa1['prima_dose'][0])-int(dfa1['seconda_dose'][0]), int(dfa1['prima_dose'][1])-int(dfa1['seconda_dose'][1]),
                                int(dfa1['prima_dose'][2])-int(dfa1['seconda_dose'][2]), int(dfa1['prima_dose'][3])-int(dfa1['seconda_dose'][3]),
                                int(dfa1['prima_dose'][4])-int(dfa1['seconda_dose'][4]), int(dfa1['prima_dose'][5])-int(dfa1['seconda_dose'][5]),
-                               int(dfa1['prima_dose'][6])-int(dfa1['seconda_dose'][6]), int(dfa1['prima_dose'][7])-int(dfa1['seconda_dose'][7]),
-                               int(dfa1['prima_dose'][8])-int(dfa1['seconda_dose'][8])],
-                            y=['16-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80-89', '90+'],
+                               int(dfa1['prima_dose'][6])-int(dfa1['seconda_dose'][6]),
+                               int(int(dfa1['prima_dose'][7])-int(dfa1['seconda_dose'][7])) + int(int(dfa1['prima_dose'][8])-int(dfa1['seconda_dose'][8]))],
+                            y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
                             marker_color='#F5C05F',
                             name='Prima Dose'
                             ),
                      go.Bar(x=[dfa1['seconda_dose'][0], dfa1['seconda_dose'][1], dfa1['seconda_dose'][2],
                                dfa1['seconda_dose'][3], dfa1['seconda_dose'][4], dfa1['seconda_dose'][5],
-                               dfa1['seconda_dose'][6], dfa1['seconda_dose'][7], dfa1['seconda_dose'][8]],
-                            y=['16-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80-89', '90+'],
+                               dfa1['seconda_dose'][6], int(int(dfa1['seconda_dose'][7]) + int(dfa1['seconda_dose'][8]))],
+                            y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
                             marker_color='#E83A8E',
-                            name='Seconda Dose'
+                            name='Vaccinati'
                             ),
+                     go.Bar(x=[int(reg_dfe1.loc[reg_dfe1.index[0], 'totale_popolazione']) - int(dfa1['prima_dose'][0]),
+                               int(reg_dfe1.loc[reg_dfe1.index[1], 'totale_popolazione']) - int(dfa1['prima_dose'][1]),
+                               int(reg_dfe1.loc[reg_dfe1.index[2], 'totale_popolazione']) - int(dfa1['prima_dose'][2]),
+                               int(reg_dfe1.loc[reg_dfe1.index[3], 'totale_popolazione']) - int(dfa1['prima_dose'][3]),
+                               int(reg_dfe1.loc[reg_dfe1.index[4], 'totale_popolazione']) - int(dfa1['prima_dose'][4]),
+                               int(reg_dfe1.loc[reg_dfe1.index[5], 'totale_popolazione']) - int(dfa1['prima_dose'][5]),
+                               int(reg_dfe1.loc[reg_dfe1.index[6], 'totale_popolazione']) - int(dfa1['prima_dose'][6]),
+                               int(reg_dfe1.loc[reg_dfe1.index[7], 'totale_popolazione']) - int(int(dfa1['prima_dose'][7]) + int(dfa1['prima_dose'][8]))],
+                            y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
+                            orientation='h',
+                            marker_color='#6181E8',
+                            name='Non vaccinati'
+                            )
                      ],
             'layout': {
                 'barmode': 'stack',  # stack data
@@ -667,7 +682,6 @@ def vaccine_age_bar(regione):
 
 # forecast
 def previsione():
-    #refresh_data()
     global month_last_day_vaccine
     date_format = "%Y-%m-%d"  # date format
     ora = datetime.strptime(str(today), date_format)
@@ -843,7 +857,6 @@ def dropdown_effetti_decessi_contagi_graph():
     [Input('dropdown_effetti_decessi_contagi_graph', 'value')])
 def effetti_contagi_graph(regione):
     if regione == 'Dato Nazionale':
-        #refresh_data()
         dec = ddc
         dec['nuovi_positivi_avg'] = ddc['nuovi_positivi'].rolling(30).mean()
     else:
@@ -906,7 +919,6 @@ def effetti_contagi_graph(regione):
     [Input('dropdown_effetti_decessi_contagi_graph', 'value')])
 def effetti_decessi_graph(regione):
     if regione == 'Dato Nazionale':
-        #refresh_data()
         ded = ddc
         ded['nuovi_decessi'] = ded.deceduti.diff().fillna(ded.deceduti)
         ded['nuovi_decessi'].iloc[121] = 31  # error -31
