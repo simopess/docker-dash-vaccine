@@ -137,9 +137,15 @@ def vaccine_update():
     primadose = round((int(tot_prima)/60360000)*100, 2)
     secondadose = round((int(tot_seconda)/60360000)*100, 2)
     tjanssen = round((int(tot_janssen) / 60360000) * 100, 2)
+    # percentage platea
+    p_primadose = round((int(tot_prima) / 50773718) * 100, 2)
+    p_secondadose = round((int(tot_seconda) / 50773718) * 100, 2)
+    p_tjanssen = round((int(tot_janssen) / 50773718) * 100, 2)
     # formating
     tot_prima_dose = '{:,}'.format(int(prima)).replace(',', '.')
     tot_janssenf = '{:,}'.format(int(tot_janssen)).replace(',', '.')
+    p_tot_prima_dose = '{:,}'.format(int(prima)).replace(',', '.')
+    p_tot_janssenf = '{:,}'.format(int(tot_janssen)).replace(',', '.')
     return html.Div([
         html.Div([
             html.Table([
@@ -153,13 +159,20 @@ def vaccine_update():
                         html.H1(tot_prima_dose, style={'color': '#F5C05F', 'font-size': '45px'})
                     ),
                 ]),
+                # Percentage platea
+                html.Tr([
+                    html.Td(html.B(
+                        '' + str(p_primadose) + '% della platea',
+                        style={'color': '#F5C05F', 'font-size': '14px'}
+                    ))
+                ]),
                 # Percentage
                 html.Tr([
                     html.Td(html.B(
                         '' + str(primadose) + '% della popolazione',
                         style={'color': '#F5C05F', 'font-size': '14px'}
                     ))
-                ])
+                ]),
             ], className='table')
         ], className='container-3'),
         html.Div([
@@ -174,12 +187,18 @@ def vaccine_update():
                         html.H1(tot_seconda_dose, style={'color': '#E83A8E', 'font-size': '45px'})
                     )
                 ]),
+                # Percentage platea
+                html.Tr([
+                    html.Td(html.B(
+                        '' + str(p_secondadose) + '% della platea', style={'color': '#E83A8E', 'font-size': '14px'}
+                    ))
+                ]),
                 # Percentage
                 html.Tr([
                     html.Td(html.B(
-                        ''+str(secondadose)+'% della popolazione', style={'color': '#E83A8E', 'font-size': '14px'}
+                        '' + str(secondadose) + '% della popolazione', style={'color': '#E83A8E', 'font-size': '14px'}
                     ))
-                ])
+                ]),
             ], className='table')
         ], className='container-3'),
         html.Div([
@@ -193,6 +212,12 @@ def vaccine_update():
                     html.Td(
                         html.H1(tot_janssenf, style={'color': '#E83A8E', 'font-size': '45px'})
                     ),
+                ]),
+                # Percentage platea
+                html.Tr([
+                    html.Td(html.B(
+                        '' + str(p_tjanssen) + '% della platea', style={'color': '#E83A8E', 'font-size': '14px'}
+                    ))
                 ]),
                 # Percentage
                 html.Tr([
@@ -697,16 +722,19 @@ def previsione():
     # month
     month_prima = ds_dosi.loc[ds_dosi['data_somministrazione'].between(str(ora-relativedelta(months=1))[:10], str(ora)[:10]), ['prima_dose']].sum()
     month_day_passati = (ora - (ora-relativedelta(months=1))).days
-    month_day = (60360000 / int(month_prima)) * month_day_passati
+    month_day = ((60360000 - int(tot_prima)) / int(month_prima)) * month_day_passati
     month_last_day = str(ora + timedelta(days=month_day))[:10]
     # 80%
-    month_day_80 = (48288000 / int(month_prima)) * month_day_passati
+    month_day_80 = ((48288000 - int(tot_prima)) / int(month_prima)) * month_day_passati
+    #month_day_80 = (48288000 / int(month_prima)) * month_day_passati
     month_last_day_80 = str(ora + timedelta(days=month_day_80))[:10]
     # 70%
-    month_day_70 = (42252000 / int(month_prima)) * month_day_passati
+    month_day_70 = ((42252000 - int(tot_prima)) / int(month_prima)) * month_day_passati
+    #month_day_70 = (42252000 / int(month_prima)) * month_day_passati
     month_last_day_70 = str(ora + timedelta(days=month_day_70))[:10]
     # 60%
-    month_day_60 = (36216000 / int(month_prima)) * month_day_passati
+    month_day_60 = ((36216000 - int(tot_prima)) / int(month_prima)) * month_day_passati
+    #month_day_60 = (36216000 / int(month_prima)) * month_day_passati
     month_last_day_60 = str(ora + timedelta(days=month_day_60))[:10]
 
     month_last_day_vaccine = month_last_day_70  # last day 70% vaccine
