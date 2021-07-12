@@ -19,7 +19,7 @@ population = 0
 
 last_update = ''  # last update
 max_prima_f = ''  # max first dose in 1day
-tot_janssenf = '' # tot only 1 dose format
+tot_janssenf = ''  # tot only 1 dose format
 tot_janssen = ''  # tot only 1 dose
 month_last_day_vaccine = ''  # 70% population vaccine date
 percent_mese = ''  # percentage
@@ -68,7 +68,7 @@ slider_button = list([
 def refresh_data():
     global today, last_update, max_prima_f
     global dc, ds, dfa, ddc, dfe, tot_dfe, ds_dosi
-    global tot_prima_dose, tot_seconda_dose, tot_prima, tot_seconda
+    global tot_prima_dose, tot_seconda_dose, tot_prima, tot_seconda, tot_covid, tot_with_covid
     global percent_mese_death, percent_mese
     # read csv for url and get date
     dc = pandas.read_csv(consegne)
@@ -80,7 +80,7 @@ def refresh_data():
     # doses delivered
     dc = dc.groupby('data_consegna').agg({'numero_dosi': 'sum'}).reset_index()
     # doses administered
-    ds_dosi = ds.groupby('data_somministrazione').agg({'prima_dose': 'sum', 'seconda_dose': 'sum'}).reset_index()
+    ds_dosi = ds.groupby('data_somministrazione').agg({'prima_dose': 'sum', 'seconda_dose': 'sum', 'pregressa_infezione': 'sum'}).reset_index()
 
     ds_prime_dosi = ds_dosi.loc[ds_dosi['data_somministrazione'] == str(today), 'prima_dose']
     if len(ds_prime_dosi) == 0:
@@ -111,6 +111,9 @@ def refresh_data():
     # second dose from the start
     tot_seconda = ds_dosi.loc[ds_dosi['data_somministrazione'].between('2020-12-27', str(today)), ['seconda_dose']].sum()
     tot_seconda_dose = '{:,}'.format(int(tot_seconda)).replace(',', '.')
+    # with covid
+    tot_covid = ds_dosi.loc[ds_dosi['data_somministrazione'].between('2020-12-27', str(today)), ['pregressa_infezione']].sum()
+    tot_with_covid = '{:,}'.format(int(tot_covid)).replace(',', '.')
     # age
     dfa = ds.groupby('fascia_anagrafica').agg({'prima_dose': 'sum', 'seconda_dose': 'sum'}).reset_index()
     tot_dfe = dfe.groupby('fascia_anagrafica').agg({'totale_popolazione': 'sum'}).reset_index()
@@ -133,19 +136,22 @@ def vaccine_update():
     janssen = ds.loc[ds['fornitore'] == 'Janssen'].groupby('data_somministrazione').agg({'prima_dose': 'sum'}).reset_index()
     tot_janssen = janssen.loc[janssen['data_somministrazione'].between('2021-04-05', str(today)), ['prima_dose']].sum()
     prima = int(tot_prima) - int(tot_janssen)
+    vaccinati = int(tot_seconda) + int(tot_janssen) + int(tot_covid)
     # percentage
-    primadose = round((int(tot_prima)/60360000)*100, 2)
-    secondadose = round((int(tot_seconda)/60360000)*100, 2)
+    primadose = round((int(prima)/60360000)*100, 2)
+    secondadose = round((int(vaccinati)/60360000)*100, 2)
     tjanssen = round((int(tot_janssen) / 60360000) * 100, 2)
+    covid = round((int(tot_covid) / 60360000) * 100, 2)
     # percentage platea
-    p_primadose = round((int(tot_prima) / 50773718) * 100, 2)
-    p_secondadose = round((int(tot_seconda) / 50773718) * 100, 2)
+    p_primadose = round((int(prima) / 50773718) * 100, 2)
+    p_secondadose = round((int(vaccinati) / 50773718) * 100, 2)
     p_tjanssen = round((int(tot_janssen) / 50773718) * 100, 2)
+    p_covid = round((int(tot_covid) / 50773718) * 100, 2)
     # formating
     tot_prima_dose = '{:,}'.format(int(prima)).replace(',', '.')
+    tot_vaccinati_dose = '{:,}'.format(int(vaccinati)).replace(',', '.')
     tot_janssenf = '{:,}'.format(int(tot_janssen)).replace(',', '.')
-    p_tot_prima_dose = '{:,}'.format(int(prima)).replace(',', '.')
-    p_tot_janssenf = '{:,}'.format(int(tot_janssen)).replace(',', '.')
+    tot_covid_dosi = '{:,}'.format(int(tot_covid)).replace(',', '.')
     return html.Div([
         html.Div([
             html.Table([
@@ -184,7 +190,7 @@ def vaccine_update():
                 # Body
                 html.Tr([
                     html.Td(
-                        html.H1(tot_seconda_dose, style={'color': '#E83A8E', 'font-size': '45px'})
+                        html.H1(tot_vaccinati_dose, style={'color': '#E83A8E', 'font-size': '45px'})
                     )
                 ]),
                 # Percentage platea
@@ -202,30 +208,44 @@ def vaccine_update():
             ], className='table')
         ], className='container-3'),
         html.Div([
-            html.Table([
-                # Header
-                html.Tr([
-                    html.Td('Vaccino monodose', style={'font-size': '14px'}),
-                ]),
-                # Body
-                html.Tr([
-                    html.Td(
-                        html.H1(tot_janssenf, style={'color': '#E83A8E', 'font-size': '45px'})
-                    ),
-                ]),
-                # Percentage platea
-                html.Tr([
-                    html.Td(html.B(
-                        '' + str(p_tjanssen) + '% della platea', style={'color': '#E83A8E', 'font-size': '14px'}
-                    ))
-                ]),
-                # Percentage
-                html.Tr([
-                    html.Td(html.B(
-                        '' + str(tjanssen) + '% della popolazione', style={'color': '#E83A8E', 'font-size': '14px'}
-                    ))
-                ])
-            ], className='table')
+            html.Div([
+                html.Table([
+                    # Header
+                    html.Tr([
+                        html.Td('Di cui con vaccino monodose', style={'font-size': '14px'}),
+                    ]),
+                    # Body
+                    html.Tr([
+                        html.Td(
+                            html.H1(tot_janssenf, style={'color': '#C93E7F', 'font-size': '30px'})
+                        ),
+                        html.Td([html.B(
+                            '' + str(p_tjanssen) + '% della platea', style={'color': '#C93E7F', 'font-size': '12px'}
+                        ), html.Br(), html.B(
+                            '' + str(tjanssen) + '% della popolazione', style={'color': '#C93E7F', 'font-size': '12px'}
+                        )]),
+                    ]),
+                ], className='table')
+            ], className='container-1'),
+            html.Div([
+                html.Table([
+                    # Header
+                    html.Tr([
+                        html.Td('Di cui con pregressa infezione', style={'font-size': '14px'}),
+                    ]),
+                    # Body
+                    html.Tr([
+                        html.Td(
+                            html.H1(tot_covid_dosi, style={'color': '#B33771', 'font-size': '30px'})
+                        ),
+                        html.Td([html.B(
+                            '' + str(p_covid) + '% della platea', style={'color': '#B33771', 'font-size': '12px'}
+                        ), html.Br(), html.B(
+                            '' + str(covid) + '% della popolazione', style={'color': '#B33771', 'font-size': '12px'}
+                        )]),
+                    ]),
+                ], className='table')
+            ], className='container-1')
         ], className='container-3')
     ], className='container-1')
 
@@ -236,7 +256,7 @@ def vaccine_update_bar():
         html.Div([
             dcc.Graph(
                 figure={
-                    'data': [go.Bar(x=[60360000, 50773718, int(tot_prima), int(tot_seconda)+int(tot_janssen)],
+                    'data': [go.Bar(x=[60360000, 50773718, int(tot_prima)-int(tot_janssen), int(tot_seconda)+int(tot_janssen)+int(tot_covid)],
                                     y=['Popolazione', 'Platea', 'Prima dose', 'Vaccinati'],
                                     orientation='h',
                                     marker_color=['#6181E8', '#5EAEFF', '#F5C05F', '#E83A8E'])
