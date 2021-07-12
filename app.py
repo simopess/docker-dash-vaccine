@@ -212,7 +212,7 @@ def vaccine_update():
                 html.Table([
                     # Header
                     html.Tr([
-                        html.Td('Di cui con vaccino monodose', style={'font-size': '14px'}),
+                        html.Td('Di cui con vaccino monodose', colSpan=2, style={'font-size': '14px'}),
                     ]),
                     # Body
                     html.Tr([
@@ -231,7 +231,7 @@ def vaccine_update():
                 html.Table([
                     # Header
                     html.Tr([
-                        html.Td('Di cui con pregressa infezione', style={'font-size': '14px'}),
+                        html.Td('Di cui con pregressa infezione', colSpan=2, style={'font-size': '14px'}),
                     ]),
                     # Body
                     html.Tr([
