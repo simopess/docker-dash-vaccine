@@ -1033,6 +1033,9 @@ def riduzione_graph():
     date_format = "%Y-%m-%d"  # date format
     ora = datetime.strptime(str(today), date_format)
     traces = ['']
+    #dfe1 = pandas.read_csv(fascia_anagrafica)
+    #dfa1 = dfe1.copy().groupby('nome_area').agg({'totale_popolazione': 'sum'}).reset_index()
+    #print(dfa1)
 
     for reg in regions:
         # contagi
@@ -1069,9 +1072,17 @@ def riduzione_graph():
         positive = round((int(ddcr_contagi)*100000)/popolazione, 2)
         # doses
         ds2 = ds1[ds1['nome_area'] == reg]
-        ds_dosi_velocity = ds2.groupby('data_somministrazione').agg({'prima_dose': 'sum', 'nome_area': 'last'}).reset_index()
-        doses = ds_dosi_velocity.loc[ds_dosi_velocity['data_somministrazione'].between('2020-12-27', str(today)), ['prima_dose']].sum()
-        doses_percent = round((int(doses) / popolazione) * 100, 2)
+        ds_dosi_velocity = ds2.groupby('data_somministrazione').agg({'seconda_dose': 'sum', 'nome_area': 'last'}).reset_index()
+        doses = ds_dosi_velocity.loc[ds_dosi_velocity['data_somministrazione'].between('2020-12-27', str(today)), ['seconda_dose']].sum()
+        #JJ
+        ds_janssen = ds2.loc[ds2['fornitore'] == 'Janssen'].groupby('data_somministrazione').agg({'prima_dose': 'sum', 'nome_area': 'last'}).reset_index()
+        ds_tot_janssen = ds_janssen.loc[ds_janssen['data_somministrazione'].between('2021-04-05', str(today)), ['prima_dose']].sum()
+        #covid
+        ds_covid = ds2.groupby('data_somministrazione').agg({'pregressa_infezione': 'sum', 'nome_area': 'last'}).reset_index()
+        ds_tot_covid = ds_covid.loc[ds_covid['data_somministrazione'].between('2020-12-27', str(today)), ['pregressa_infezione']].sum()
+        tot_vaccinati = int(doses) + int(ds_tot_janssen) + int(ds_tot_covid)
+        #percent
+        doses_percent = round((int(tot_vaccinati) / popolazione) * 100, 2)
         # traces
         traces.append(go.Scatter({'x': [float(positive)], 'y': [float(doses_percent)], 'mode': 'markers+text', 'marker': dict(color='crimson', size=12), 'text': f"{reg1}", 'textfont':dict(color='#B01B3E'), 'textposition': 'middle right', 'name': f"{reg1}"}))
     traces.pop(0)
