@@ -82,6 +82,7 @@ def refresh_data():
     # doses administered
     ds_dosi = ds.groupby('data_somministrazione').agg({'prima_dose': 'sum', 'seconda_dose': 'sum', 'pregressa_infezione': 'sum'}).reset_index()
 
+    #last update date
     ds_prime_dosi = ds_dosi.loc[ds_dosi['data_somministrazione'] == str(today), 'prima_dose']
     if len(ds_prime_dosi) == 0:
         last_update = date.today()
