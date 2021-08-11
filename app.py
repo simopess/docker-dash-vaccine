@@ -251,6 +251,7 @@ def vaccine_update():
     ], className='container-1')
 
 
+# vaccine bar
 def vaccine_update_bar():
     #refresh_data()
     return html.Div([
