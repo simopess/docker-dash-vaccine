@@ -251,7 +251,6 @@ def vaccine_update():
     ], className='container-1')
 
 
-# vaccine bar
 def vaccine_update_bar():
     #refresh_data()
     return html.Div([
@@ -343,7 +342,7 @@ def vaccine_daily(regione):
     tot_consegne = '{:,}'.format(int(tot_consegne)).replace(',', '.')
     tot_vaccini = '{:,}'.format(int(tot_vaccini)).replace(',', '.')
 
-    # formatting the data
+    # formatting data
     if len(dc_dosi_consegnate) == 0:
         dc_dosi_consegnate = 0
     else:
@@ -754,12 +753,8 @@ def previsione():
     month_day_70 = ((42252000 - int(tot_prima)) / int(month_prima)) * month_day_passati
     #month_day_70 = (42252000 / int(month_prima)) * month_day_passati
     month_last_day_70 = str(ora + timedelta(days=month_day_70))[:10]
-    # 60%
-    month_day_60 = ((36216000 - int(tot_prima)) / int(month_prima)) * month_day_passati
-    #month_day_60 = (36216000 / int(month_prima)) * month_day_passati
-    month_last_day_60 = str(ora + timedelta(days=month_day_60))[:10]
 
-    month_last_day_vaccine = month_last_day_70  # last day 70% vaccine
+    month_last_day_vaccine = month_last_day_80  # last day 80% vaccine
 
     return html.Div(  # main div
         dbc.Container([
@@ -774,8 +769,8 @@ def previsione():
                                            mode='lines',
                                            name='Previsione del Governo',
                                            line=go.scatter.Line(color="#FA5541")),
-                                go.Scatter(x=[ds_dosi['data_somministrazione'][l-1], month_last_day_60, month_last_day_70, month_last_day_80, month_last_day],
-                                           y=[int(tot_prima)/60360000, 0.6, 0.7, 0.8, 1],
+                                go.Scatter(x=[ds_dosi['data_somministrazione'][l-1], month_last_day_80, month_last_day],
+                                           y=[int(tot_prima)/60360000, 0.8, 1],
                                            type='scatter',
                                            name='Previsione Mensile',
                                            line=go.scatter.Line(color="#FA924E")),
@@ -1070,23 +1065,26 @@ def riduzione_graph():
         elif reg1 == 'Veneto': popolazione = 4906000
         # data contagi
         ddcr2 = ddcr.loc[ddcr['denominazione_regione'] == reg1]
-        ddcr_contagi = ddcr2.loc[ddcr2['data'].between(str(ora-timedelta(days=7))[:10], str(ora)[:10]), ['nuovi_positivi']].sum()
-        positive = round((int(ddcr_contagi)*100000)/popolazione, 2)
+        # contagi
+        ddcr_contagi = ddcr2.loc[ddcr2['data'].between(str(ora - timedelta(days=7))[:10], str(ora)[:10]), ['nuovi_positivi']].sum()
+        positive = round((int(ddcr_contagi) * 100000) / popolazione, 2)
+        # ospedalizzati
+        ddcr_osp = ddcr2.loc[ddcr2['data'].between(str(ora - timedelta(days=7))[:10], str(ora)[:10]), ['totale_ospedalizzati']].sum()
+        osp = round((int(ddcr_osp) * 100000) / popolazione, 2)
+        # TI
+        ddcr_ti = ddcr2.loc[ddcr2['data'].between(str(ora - timedelta(days=7))[:10], str(ora)[:10]), ['terapia_intensiva']].sum()
+        ti = round((int(ddcr_ti) * 100000) / popolazione, 2)
+        # Deceduti
+        ddcr_deceduti = ddcr2.loc[ddcr2['data'].between(str(ora - timedelta(days=7))[:10], str(ora)[:10]), ['deceduti']].sum()
+        deceduti = round((int(ddcr_deceduti) * 100000) / popolazione, 2)
+
         # doses
         ds2 = ds1[ds1['nome_area'] == reg]
-        ds_dosi_velocity = ds2.groupby('data_somministrazione').agg({'seconda_dose': 'sum', 'nome_area': 'last'}).reset_index()
-        doses = ds_dosi_velocity.loc[ds_dosi_velocity['data_somministrazione'].between('2020-12-27', str(today)), ['seconda_dose']].sum()
-        #JJ
-        ds_janssen = ds2.loc[ds2['fornitore'] == 'Janssen'].groupby('data_somministrazione').agg({'prima_dose': 'sum', 'nome_area': 'last'}).reset_index()
-        ds_tot_janssen = ds_janssen.loc[ds_janssen['data_somministrazione'].between('2021-04-05', str(today)), ['prima_dose']].sum()
-        #covid
-        ds_covid = ds2.groupby('data_somministrazione').agg({'pregressa_infezione': 'sum', 'nome_area': 'last'}).reset_index()
-        ds_tot_covid = ds_covid.loc[ds_covid['data_somministrazione'].between('2020-12-27', str(today)), ['pregressa_infezione']].sum()
-        tot_vaccinati = int(doses) + int(ds_tot_janssen) + int(ds_tot_covid)
-        #percent
-        doses_percent = round((int(tot_vaccinati) / popolazione) * 100, 2)
+        ds_dosi_velocity = ds2.groupby('data_somministrazione').agg({'prima_dose': 'sum', 'nome_area': 'last'}).reset_index()
+        doses = ds_dosi_velocity.loc[ds_dosi_velocity['data_somministrazione'].between('2020-12-27', str(today)), ['prima_dose']].sum()
+        doses_percent = round((int(doses) / popolazione) * 100, 2)
         # traces
-        traces.append(go.Scatter({'x': [float(positive)], 'y': [float(doses_percent)], 'mode': 'markers+text', 'marker': dict(color='crimson', size=12), 'text': f"{reg1}", 'textfont':dict(color='#B01B3E'), 'textposition': 'middle right', 'name': f"{reg1}"}))
+        traces.append(go.Scatter({'x': [float(positive)], 'y': [float(doses_percent)], 'mode': 'markers+text', 'marker': dict(color='crimson', size=12), 'text': f"{reg1}", 'textfont': dict(color='#B01B3E'), 'textposition': 'middle right', 'name': f"{reg1}"}))
     traces.pop(0)
 
     return html.Div([
@@ -1110,7 +1108,232 @@ def riduzione_graph():
                 )
             )
         ])
-    ], className='container-1')
+    ], className='container-2')
+
+# effect contagi
+def riduzione_graph_osp():
+    ds1 = pandas.read_csv(somministrazioni)
+    ddcr = pandas.read_csv(decessi_contagi_regioni)
+    date_format = "%Y-%m-%d"  # date format
+    ora = datetime.strptime(str(today), date_format)
+    traces = ['']
+
+    for reg in regions:
+        # contagi
+        if reg == 'Friuli-Venezia Giulia': reg1 = 'Friuli Venezia Giulia'
+        elif reg == 'Provincia Autonoma Bolzano / Bozen': reg1 = 'P.A. Bolzano'
+        elif reg == 'Provincia Autonoma Trento': reg1 = 'P.A. Trento'
+        elif reg == "Valle d'Aosta / Vallée d'Aoste": reg1 = "Valle d'Aosta"
+        else: reg1 = reg
+        # population
+        if reg1 == 'Abruzzo': popolazione = 1312000
+        elif reg1 == 'Basilicata': popolazione = 562869
+        elif reg1 == 'Calabria': popolazione = 1947000
+        elif reg1 == 'Campania': popolazione = 5802000
+        elif reg1 == 'Emilia-Romagna': popolazione = 4459000
+        elif reg1 == 'Friuli Venezia Giulia': popolazione = 1215000
+        elif reg1 == 'Lazio': popolazione = 5879000
+        elif reg1 == 'Liguria': popolazione = 1551000
+        elif reg1 == 'Lombardia': popolazione = 10060000
+        elif reg1 == 'Marche': popolazione = 1525000
+        elif reg1 == 'Molise': popolazione = 305617
+        elif reg1 == 'P.A. Bolzano': popolazione = 520891
+        elif reg1 == 'P.A. Trento': popolazione = 538223
+        elif reg1 == 'Piemonte': popolazione = 4356000
+        elif reg1 == 'Puglia': popolazione = 4029000
+        elif reg1 == 'Sardegna': popolazione = 1640000
+        elif reg1 == 'Sicilia': popolazione = 5000000
+        elif reg1 == 'Toscana': popolazione = 3730000
+        elif reg1 == 'Umbria': popolazione = 882015
+        elif reg1 == "Valle d'Aosta": popolazione = 125666
+        elif reg1 == 'Veneto': popolazione = 4906000
+        # data contagi
+        ddcr2 = ddcr.loc[ddcr['denominazione_regione'] == reg1]
+        # ospedalizzati
+        ddcr_osp = ddcr2.loc[ddcr2['data'].between(str(ora - timedelta(days=7))[:10], str(ora)[:10]), ['totale_ospedalizzati']].sum()
+        osp = round((int(ddcr_osp) * 100000) / popolazione, 2)
+
+        # doses
+        ds2 = ds1[ds1['nome_area'] == reg]
+        ds_dosi_velocity = ds2.groupby('data_somministrazione').agg({'prima_dose': 'sum', 'nome_area': 'last'}).reset_index()
+        doses = ds_dosi_velocity.loc[ds_dosi_velocity['data_somministrazione'].between('2020-12-27', str(today)), ['prima_dose']].sum()
+        doses_percent = round((int(doses) / popolazione) * 100, 2)
+        # traces
+        traces.append(go.Scatter({'x': [float(osp)], 'y': [float(doses_percent)], 'mode': 'markers+text', 'marker': dict(color='#088BBD', size=12), 'text': f"{reg1}", 'textfont': dict(color='#088BBD'), 'textposition': 'middle right', 'name': f"{reg1}"}))
+    traces.pop(0)
+
+    return html.Div([
+        dbc.Container([
+            dbc.Row(
+                dbc.Col(
+                    dcc.Graph(
+                        figure={
+                            'data': traces,
+                            'layout': {
+                                'xaxis': dict(
+                                    rangeslider=dict(visible=False),
+                                ),
+                                'yaxis': {'title': 'Percentuale di Vaccinati'},
+                                'xaxis': {'title': 'Ospedalizzati'},
+                                'showlegend': False,
+                            }
+                        },
+                        config=chart_config
+                    )
+                )
+            )
+        ])
+    ], className='container-2')
+
+# effect contagi
+def riduzione_graph_ti():
+    ds1 = pandas.read_csv(somministrazioni)
+    ddcr = pandas.read_csv(decessi_contagi_regioni)
+    date_format = "%Y-%m-%d"  # date format
+    ora = datetime.strptime(str(today), date_format)
+    traces = ['']
+
+    for reg in regions:
+        # contagi
+        if reg == 'Friuli-Venezia Giulia': reg1 = 'Friuli Venezia Giulia'
+        elif reg == 'Provincia Autonoma Bolzano / Bozen': reg1 = 'P.A. Bolzano'
+        elif reg == 'Provincia Autonoma Trento': reg1 = 'P.A. Trento'
+        elif reg == "Valle d'Aosta / Vallée d'Aoste": reg1 = "Valle d'Aosta"
+        else: reg1 = reg
+        # population
+        if reg1 == 'Abruzzo': popolazione = 1312000
+        elif reg1 == 'Basilicata': popolazione = 562869
+        elif reg1 == 'Calabria': popolazione = 1947000
+        elif reg1 == 'Campania': popolazione = 5802000
+        elif reg1 == 'Emilia-Romagna': popolazione = 4459000
+        elif reg1 == 'Friuli Venezia Giulia': popolazione = 1215000
+        elif reg1 == 'Lazio': popolazione = 5879000
+        elif reg1 == 'Liguria': popolazione = 1551000
+        elif reg1 == 'Lombardia': popolazione = 10060000
+        elif reg1 == 'Marche': popolazione = 1525000
+        elif reg1 == 'Molise': popolazione = 305617
+        elif reg1 == 'P.A. Bolzano': popolazione = 520891
+        elif reg1 == 'P.A. Trento': popolazione = 538223
+        elif reg1 == 'Piemonte': popolazione = 4356000
+        elif reg1 == 'Puglia': popolazione = 4029000
+        elif reg1 == 'Sardegna': popolazione = 1640000
+        elif reg1 == 'Sicilia': popolazione = 5000000
+        elif reg1 == 'Toscana': popolazione = 3730000
+        elif reg1 == 'Umbria': popolazione = 882015
+        elif reg1 == "Valle d'Aosta": popolazione = 125666
+        elif reg1 == 'Veneto': popolazione = 4906000
+        # data contagi
+        ddcr2 = ddcr.loc[ddcr['denominazione_regione'] == reg1]
+        # TI
+        ddcr_ti = ddcr2.loc[ddcr2['data'].between(str(ora - timedelta(days=7))[:10], str(ora)[:10]), ['terapia_intensiva']].sum()
+        ti = round((int(ddcr_ti) * 100000) / popolazione, 2)
+
+        # doses
+        ds2 = ds1[ds1['nome_area'] == reg]
+        ds_dosi_velocity = ds2.groupby('data_somministrazione').agg({'prima_dose': 'sum', 'nome_area': 'last'}).reset_index()
+        doses = ds_dosi_velocity.loc[ds_dosi_velocity['data_somministrazione'].between('2020-12-27', str(today)), ['prima_dose']].sum()
+        doses_percent = round((int(doses) / popolazione) * 100, 2)
+        # traces
+        traces.append(go.Scatter({'x': [float(ti)], 'y': [float(doses_percent)], 'mode': 'markers+text', 'marker': dict(color='#C9BF30', size=12), 'text': f"{reg1}", 'textfont': dict(color='#C9BF30'), 'textposition': 'middle right', 'name': f"{reg1}"}))
+    traces.pop(0)
+
+    return html.Div([
+        dbc.Container([
+            dbc.Row(
+                dbc.Col(
+                    dcc.Graph(
+                        figure={
+                            'data': traces,
+                            'layout': {
+                                'xaxis': dict(
+                                    rangeslider=dict(visible=False),
+                                ),
+                                'yaxis': {'title': 'Percentuale di Vaccinati'},
+                                'xaxis': {'title': 'Terapia Intensiva'},
+                                'showlegend': False,
+                            }
+                        },
+                        config=chart_config
+                    )
+                )
+            )
+        ])
+    ], className='container-2')
+
+# effect contagi
+def riduzione_graph_deceduti():
+    ds1 = pandas.read_csv(somministrazioni)
+    ddcr = pandas.read_csv(decessi_contagi_regioni)
+    date_format = "%Y-%m-%d"  # date format
+    ora = datetime.strptime(str(today), date_format)
+    traces = ['']
+
+    for reg in regions:
+        # contagi
+        if reg == 'Friuli-Venezia Giulia': reg1 = 'Friuli Venezia Giulia'
+        elif reg == 'Provincia Autonoma Bolzano / Bozen': reg1 = 'P.A. Bolzano'
+        elif reg == 'Provincia Autonoma Trento': reg1 = 'P.A. Trento'
+        elif reg == "Valle d'Aosta / Vallée d'Aoste": reg1 = "Valle d'Aosta"
+        else: reg1 = reg
+        # population
+        if reg1 == 'Abruzzo': popolazione = 1312000
+        elif reg1 == 'Basilicata': popolazione = 562869
+        elif reg1 == 'Calabria': popolazione = 1947000
+        elif reg1 == 'Campania': popolazione = 5802000
+        elif reg1 == 'Emilia-Romagna': popolazione = 4459000
+        elif reg1 == 'Friuli Venezia Giulia': popolazione = 1215000
+        elif reg1 == 'Lazio': popolazione = 5879000
+        elif reg1 == 'Liguria': popolazione = 1551000
+        elif reg1 == 'Lombardia': popolazione = 10060000
+        elif reg1 == 'Marche': popolazione = 1525000
+        elif reg1 == 'Molise': popolazione = 305617
+        elif reg1 == 'P.A. Bolzano': popolazione = 520891
+        elif reg1 == 'P.A. Trento': popolazione = 538223
+        elif reg1 == 'Piemonte': popolazione = 4356000
+        elif reg1 == 'Puglia': popolazione = 4029000
+        elif reg1 == 'Sardegna': popolazione = 1640000
+        elif reg1 == 'Sicilia': popolazione = 5000000
+        elif reg1 == 'Toscana': popolazione = 3730000
+        elif reg1 == 'Umbria': popolazione = 882015
+        elif reg1 == "Valle d'Aosta": popolazione = 125666
+        elif reg1 == 'Veneto': popolazione = 4906000
+        # data contagi
+        ddcr2 = ddcr.loc[ddcr['denominazione_regione'] == reg1]
+        # Deceduti
+        ddcr_deceduti = ddcr2.loc[ddcr2['data'].between(str(ora - timedelta(days=7))[:10], str(ora)[:10]), ['deceduti']].sum()
+        deceduti = round((int(ddcr_deceduti) * 100000) / popolazione, 2)
+
+        # doses
+        ds2 = ds1[ds1['nome_area'] == reg]
+        ds_dosi_velocity = ds2.groupby('data_somministrazione').agg({'prima_dose': 'sum', 'nome_area': 'last'}).reset_index()
+        doses = ds_dosi_velocity.loc[ds_dosi_velocity['data_somministrazione'].between('2020-12-27', str(today)), ['prima_dose']].sum()
+        doses_percent = round((int(doses) / popolazione) * 100, 2)
+        # traces
+        traces.append(go.Scatter({'x': [float(deceduti)], 'y': [float(doses_percent)], 'mode': 'markers+text', 'marker': dict(color='#756B6B', size=12), 'text': f"{reg1}", 'textfont': dict(color='#756B6B'), 'textposition': 'middle right', 'name': f"{reg1}"}))
+    traces.pop(0)
+
+    return html.Div([
+        dbc.Container([
+            dbc.Row(
+                dbc.Col(
+                    dcc.Graph(
+                        figure={
+                            'data': traces,
+                            'layout': {
+                                'xaxis': dict(
+                                    rangeslider=dict(visible=False),
+                                ),
+                                'yaxis': {'title': 'Percentuale di Vaccinati'},
+                                'xaxis': {'title': 'Decessi'},
+                                'showlegend': False,
+                            }
+                        },
+                        config=chart_config
+                    )
+                )
+            )
+        ])
+    ], className='container-2')
 
 def layout():
     refresh_data()
@@ -1143,7 +1366,7 @@ def layout():
         # text forecast
         html.Div(html.Center([html.Br(), "Nell'ultimo ", html.B("mese"), " sono state somministrate ", html.Mark([html.B(str(max_prima_f)), " prime dosi"], style={'background-color': '#F5C05F'}),
              " in ", html.B("Italia"), " di cui ", html.Mark([html.B(str(tot_janssenf)), " monodose"], style={'background-color': '#F5C05F'}), html.Br(),
-             "A questo ritmo il ", html.B("70% della popolazione"), " sarà vaccinata entro il ", html.Mark([str(month_last_day_vaccine)], style={'background-color': '#F5C05F'})])),
+             "A questo ritmo l' ", html.B("80% della popolazione"), " sarà vaccinata entro il ", html.Mark([str(month_last_day_vaccine)], style={'background-color': '#F5C05F'})])),
         # velocity
         html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H2('Velocità vaccinazioni')), html.Center(html.I('I dati sono calcolati sulle somministrazioni delle prime dosi', style={'font-size': '14px'}))]),
         html.Div([dropdown_velocity_dosi_graph()]),
@@ -1157,7 +1380,8 @@ def layout():
                               html.Div([html.Br(), "Decessi ", html.B("ultimo mese"), " in Italia: ", html.Mark([html.B("%s" %("+" if int(percent_mese_death) > 100 else "-")+str(float(percent_mese_death))+'%')], style={'background-color': '#F5C05F'})], className='container-2'),
                               html.Div([html.Br(), html.Br(), html.Br(), html.H4('Quanto le vaccinazioni stanno contribuendo veramente alla riduzione dei contagi?'), html.I("I dati sono calcolati sulla percentuale di popolazione vaccinata e sull'incidenza dei contagi, (nell'ultima settimana) per 100.000 abitanti", style={'font-size': '14px'})], className='container-1')], className='container-1')),
         # text riduzione
-        html.Div([html.Br(), riduzione_graph()]),
+        html.Div([riduzione_graph(), riduzione_graph_osp()], className='container-1'),
+        html.Div([riduzione_graph_ti(), riduzione_graph_deceduti()], className='container-1'),
     ])
 
 app.layout = layout
