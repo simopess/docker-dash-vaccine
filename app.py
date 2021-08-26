@@ -1184,7 +1184,7 @@ def layout():
         html.Div(html.Center([html.Div([html.Br(), "Contagi ", html.B("ultimo mese"), " in Italia: ", html.Mark([html.B("%s" %("+" if int(percent_mese) > 100 else "-")+str(float(percent_mese))+'%')], style={'background-color': '#F5C05F'})], className='container-2'),
                               html.Div([html.Br(), "Decessi ", html.B("ultimo mese"), " in Italia: ", html.Mark([html.B("%s" %("+" if int(percent_mese_death) > 100 else "-")+str(float(percent_mese_death))+'%')], style={'background-color': '#F5C05F'})], className='container-2'),
                               html.Div([html.Br(), html.Br(), html.Br(), html.H4('Quanto le vaccinazioni stanno contribuendo veramente alla riduzione dei contagi?'), html.I("I dati sono calcolati sulla percentuale di popolazione vaccinata e sull'incidenza dei contagi, (nell'ultima settimana) per 100.000 abitanti", style={'font-size': '14px'}), html.Br(), html.Br()], className='container-1')], className='container-1')),
-        # text riduzione
+        # riduzione
         html.Div([dropdown_riduzione_graph()]),
         html.Div([html.Div(id='riduzione_graph')], className='container-1'),
     ])
