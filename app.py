@@ -632,14 +632,14 @@ def vaccine_age_bar(regione):
                             marker_color='#E83A8E',
                             name='Vaccinati'
                             ),
-                     go.Bar(x=[int(tot_dfe.loc[tot_dfe.index[0], 'totale_popolazione']) - int(dfa['prima_dose'][0]),
-                               int(tot_dfe.loc[tot_dfe.index[1], 'totale_popolazione']) - int(dfa['prima_dose'][1]),
-                               int(tot_dfe.loc[tot_dfe.index[2], 'totale_popolazione']) - int(dfa['prima_dose'][2]),
-                               int(tot_dfe.loc[tot_dfe.index[3], 'totale_popolazione']) - int(dfa['prima_dose'][3]),
-                               int(tot_dfe.loc[tot_dfe.index[4], 'totale_popolazione']) - int(dfa['prima_dose'][4]),
-                               int(tot_dfe.loc[tot_dfe.index[5], 'totale_popolazione']) - int(dfa['prima_dose'][5]),
-                               int(tot_dfe.loc[tot_dfe.index[6], 'totale_popolazione']) - int(dfa['prima_dose'][6]),
-                               int(tot_dfe.loc[tot_dfe.index[7], 'totale_popolazione']) - int(dfa['prima_dose'][7])],
+                     go.Bar(x=[int(tot_dfe.loc[tot_dfe.index[0], 'totale_popolazione']) - (int(dfa['prima_dose'][0])),
+                               int(tot_dfe.loc[tot_dfe.index[1], 'totale_popolazione']) - (int(dfa['prima_dose'][1])),
+                               int(tot_dfe.loc[tot_dfe.index[2], 'totale_popolazione']) - (int(dfa['prima_dose'][2])),
+                               int(tot_dfe.loc[tot_dfe.index[3], 'totale_popolazione']) - (int(dfa['prima_dose'][3])),
+                               int(tot_dfe.loc[tot_dfe.index[4], 'totale_popolazione']) - (int(dfa['prima_dose'][4])),
+                               int(tot_dfe.loc[tot_dfe.index[5], 'totale_popolazione']) - (int(dfa['prima_dose'][5])),
+                               int(tot_dfe.loc[tot_dfe.index[6], 'totale_popolazione']) - (int(dfa['prima_dose'][6])),
+                               int(tot_dfe.loc[tot_dfe.index[7], 'totale_popolazione']) - (int(dfa['prima_dose'][7]+int(dfa['prima_dose'][8])))],
                             y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
                             marker_color='#6181E8',
@@ -1088,19 +1088,23 @@ def riduzione_graph(value):
         elif reg1 == 'Veneto': popolazione = 4906000
         # data contagi
         ddcr2 = ddcr.loc[ddcr['denominazione_regione'] == reg1]
+        ded = ddcr2
+        ded['nuovi_decessi'] = ded.deceduti.diff().fillna(ded.deceduti)
+        ded['nuovi_decessi'].iloc[121] = 31  # error -31
+        ospd = ddcr2
+        ospd['nuovi_ospedalizzati'] = ospd.totale_ospedalizzati.diff().fillna(ospd.totale_ospedalizzati)
         # contagi
         ddcr_contagi = ddcr2.loc[ddcr2['data'].between(str(ora - timedelta(days=7))[:10], str(ora)[:10]), ['nuovi_positivi']].sum()
         positive = round((int(ddcr_contagi) * 100000) / popolazione, 2)
         # ospedalizzati
-        ddcr_osp = ddcr2.loc[ddcr2['data'].between(str(ora - timedelta(days=7))[:10], str(ora)[:10]), ['totale_ospedalizzati']].sum()
+        ddcr_osp = ospd.loc[ddcr2['data'].between(str(ora - timedelta(days=7))[:10], str(ora)[:10]), ['nuovi_ospedalizzati']].sum()
         osp = round((int(ddcr_osp) * 100000) / popolazione, 2)
         # TI
-        ddcr_ti = ddcr2.loc[ddcr2['data'].between(str(ora - timedelta(days=7))[:10], str(ora)[:10]), ['terapia_intensiva']].sum()
+        ddcr_ti = ddcr2.loc[ddcr2['data'].between(str(ora - timedelta(days=7))[:10], str(ora)[:10]), ['ingressi_terapia_intensiva']].sum()
         ti = round((int(ddcr_ti) * 100000) / popolazione, 2)
         # Deceduti
-        ddcr_deceduti = ddcr2.loc[ddcr2['data'].between(str(ora - timedelta(days=7))[:10], str(ora)[:10]), ['deceduti']].sum()
+        ddcr_deceduti = ded.loc[ded['data'].between(str(ora - timedelta(days=7))[:10], str(ora)[:10]), ['nuovi_decessi']].sum()
         deceduti = round((int(ddcr_deceduti) * 100000) / popolazione, 2)
-
         # doses
         ds2 = ds1[ds1['nome_area'] == reg]
         ds_dosi_velocity = ds2.groupby('data_somministrazione').agg({'prima_dose': 'sum', 'nome_area': 'last'}).reset_index()
@@ -1108,12 +1112,20 @@ def riduzione_graph(value):
         doses_percent = round((int(doses) / popolazione) * 100, 2)
         # traces
         if value == 'Nuovi Positivi':
+            if float(positive) < 0:
+                positive = 0
             traces.append(go.Scatter({'x': [float(positive)], 'y': [float(doses_percent)], 'mode': 'markers+text', 'marker': dict(color='crimson', size=12), 'text': f"{reg1}", 'textfont': dict(color='#B01B3E'), 'textposition': 'middle right', 'name': f"{reg1}"}))
         elif value == 'Ospedalizzati':
+            if float(osp) < 0:
+                osp = 0
             traces.append(go.Scatter({'x': [float(osp)], 'y': [float(doses_percent)], 'mode': 'markers+text', 'marker': dict(color='#088BBD', size=12), 'text': f"{reg1}", 'textfont': dict(color='#088BBD'), 'textposition': 'middle right', 'name': f"{reg1}"}))
         elif value == 'Terapia Intensiva':
+            if float(ti) < 0:
+                ti = 0
             traces.append(go.Scatter({'x': [float(ti)], 'y': [float(doses_percent)], 'mode': 'markers+text', 'marker': dict(color='#C9BF30', size=12), 'text': f"{reg1}", 'textfont': dict(color='#C9BF30'), 'textposition': 'middle right', 'name': f"{reg1}"}))
         else:
+            if float(deceduti) < 0:
+                deceduti = 0
             traces.append(go.Scatter({'x': [float(deceduti)], 'y': [float(doses_percent)], 'mode': 'markers+text', 'marker': dict(color='#756B6B', size=12), 'text': f"{reg1}", 'textfont': dict(color='#756B6B'), 'textposition': 'middle right', 'name': f"{reg1}"}))
     traces.pop(0)
 
@@ -1129,7 +1141,7 @@ def riduzione_graph(value):
                                     rangeslider=dict(visible=False),
                                 ),
                                 'yaxis': {'title': 'Percentuale di Vaccinati'},
-                                'xaxis': {'title': 'Nuovi positivi'},
+                                'xaxis': {'title': value},
                                 'showlegend': False,
                             }
                         },
@@ -1184,7 +1196,7 @@ def layout():
         html.Div(html.Center([html.Div([html.Br(), "Contagi ", html.B("ultimo mese"), " in Italia: ", html.Mark([html.B("%s" %("+" if int(percent_mese) > 100 else "-")+str(float(percent_mese))+'%')], style={'background-color': '#F5C05F'})], className='container-2'),
                               html.Div([html.Br(), "Decessi ", html.B("ultimo mese"), " in Italia: ", html.Mark([html.B("%s" %("+" if int(percent_mese_death) > 100 else "-")+str(float(percent_mese_death))+'%')], style={'background-color': '#F5C05F'})], className='container-2'),
                               html.Div([html.Br(), html.Br(), html.Br(), html.H4('Quanto le vaccinazioni stanno contribuendo veramente alla riduzione dei contagi?'), html.I("I dati sono calcolati sulla percentuale di popolazione vaccinata e sull'incidenza dei contagi, (nell'ultima settimana) per 100.000 abitanti", style={'font-size': '14px'}), html.Br(), html.Br()], className='container-1')], className='container-1')),
-        # riduzione
+        # text riduzione
         html.Div([dropdown_riduzione_graph()]),
         html.Div([html.Div(id='riduzione_graph')], className='container-1'),
     ])
