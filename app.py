@@ -167,7 +167,7 @@ def vaccine_update():
         html.Div([
             html.Table([
                 html.Tr([
-                    html.Td('Seconda Dose', style={'font-size': '14px'})
+                    html.Td('Vaccinati', style={'font-size': '14px'})
                 ]),
                 html.Tr([
                     html.Td(
@@ -269,10 +269,10 @@ def vaccine_update_bar():
         html.Div([
             dcc.Graph(
                 figure={
-                    'data': [go.Bar(x=[60360000, 50773718, int(tot_prima)-int(tot_janssen), int(tot_seconda)+int(tot_janssen)+int(tot_covid), int(tot_terza)],
-                                    y=['Popolazione', 'Platea', 'Prima dose', 'Seconda dose', 'Terza dose'],
+                    'data': [go.Bar(x=[60360000, 50773718, int(tot_seconda)+int(tot_janssen)+int(tot_covid), int(tot_prima)-int(tot_janssen), int(tot_terza)],
+                                    y=['Popolazione', 'Platea', 'Vaccinati', 'Prima dose', 'Terza dose'],
                                     orientation='h',
-                                    marker_color=['#6181E8', '#5EAEFF', '#F5C05F', '#E83A8E', '#B768FE'])
+                                    marker_color=['#6181E8', '#5EAEFF', '#E83A8E', '#F5C05F', '#B768FE'])
                              ],
                     'layout': {
                         'height': 270,  # px
@@ -507,6 +507,11 @@ def vaccine_graph(regione):
                     dcc.Graph(
                         figure={
                             'data': [
+                                {'x': ds_astra['data_somministrazione'],
+                                 'y': ds_astra['prima_dose'] + ds_astra['seconda_dose'] + ds_astra['dose_aggiuntiva'],
+                                 'type': 'bar',
+                                 'name': 'AstraZeneca',
+                                 'marker': dict(color='#537BE0')},
                                 {'x': ds_pfizer['data_somministrazione'],
                                  'y': ds_pfizer['prima_dose'] + ds_pfizer['seconda_dose'] + ds_pfizer['dose_aggiuntiva'],
                                  'type': 'bar',
@@ -517,11 +522,6 @@ def vaccine_graph(regione):
                                  'type': 'bar',
                                  'name': 'Moderna',
                                  'marker': dict(color='#395499')},
-                                {'x': ds_astra['data_somministrazione'],
-                                 'y': ds_astra['prima_dose'] + ds_astra['seconda_dose'] + ds_astra['dose_aggiuntiva'],
-                                 'type': 'bar',
-                                 'name': 'AstraZeneca',
-                                 'marker': dict(color='#537BE0')},
                                 {'x': ds_janssen['data_somministrazione'],
                                  'y': ds_janssen['prima_dose'] + ds_janssen['seconda_dose'] + ds_janssen['dose_aggiuntiva'],
                                  'type': 'bar',
@@ -561,21 +561,6 @@ def dosi_graph(regione):
         ds1 = pandas.read_csv(somministrazioni)
         reg_ds1 = ds1.loc[ds1['nome_area'] == regione]
         prima_seconda = reg_ds1.copy().groupby('data_somministrazione').agg({'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_aggiuntiva': 'sum'}).reset_index()
-    text1 = prima_seconda['prima_dose'].tolist()
-    text2 = prima_seconda['seconda_dose'].tolist()
-    text_first = []
-    text_second = []
-    for x in text1:
-        if x > 9999:
-            x = '{:,}'.format(x).replace(',', '.')
-            x = x + 'k'
-        text_first.append(x)
-    for x in text2:
-        if x > 9999:
-            x = '{:,}'.format(x).replace(',', '.')
-            x = x + 'k'
-        text_second.append(x)
-
     return html.Div([
             dbc.Container([
                 dbc.Row(
@@ -584,19 +569,14 @@ def dosi_graph(regione):
                             figure={
                                 'data': [
                                     go.Bar(x=prima_seconda['data_somministrazione'],
+                                           y=prima_seconda['prima_dose'],
+                                           name='Prima Dose', marker=dict(color='#F5C05F')),
+                                    go.Bar(x=prima_seconda['data_somministrazione'],
+                                           y=prima_seconda['seconda_dose'],
+                                           name='Seconda Dose', marker=dict(color='#78F5B3')),
+                                    go.Bar(x=prima_seconda['data_somministrazione'],
                                            y=prima_seconda['dose_aggiuntiva'],
-                                           name='Terza Dose',
-                                           marker=dict(color='#B768FE')),
-                                    go.Bar(x=prima_seconda['data_somministrazione'],
-                                           y=(prima_seconda['seconda_dose']) - (prima_seconda['dose_aggiuntiva']),
-                                           text=text_second,
-                                           name='Seconda Dose', marker=dict(color='#78F5B3'),
-                                           hovertemplate='%{text}'),
-                                    go.Bar(x=prima_seconda['data_somministrazione'],
-                                           y=(prima_seconda['prima_dose']) - (prima_seconda['seconda_dose']) - (prima_seconda['dose_aggiuntiva']),
-                                           text=text_first,
-                                           name='Prima Dose', marker=dict(color='#F5C05F'),
-                                           hovertemplate='%{text}'),
+                                           name='Terza Dose', marker=dict(color='#B768FE')),
                                 ],
                                 'layout': {
                                     'barmode': 'stack',
@@ -609,7 +589,6 @@ def dosi_graph(regione):
                                         orientation="h",
                                         xanchor="center",
                                         x=0.5, y=-0.2,
-                                        itemclick=False, itemdoubleclick=False
                                     )
                                 }
                             }, config=chart_config
@@ -645,11 +624,11 @@ def dropdown_vaccine_age_bar():
 def vaccine_age_bar(regione):
     if regione == 'Dato Nazionale':
         figure_age = {
-            'data': [go.Bar(x=[int(dfa['prima_dose'][0])-int(int(dfa['seconda_dose'][0])+int(dfa['dose_aggiuntiva'][0])), int(dfa['prima_dose'][1])-int(int(dfa['seconda_dose'][1])+int(dfa['dose_aggiuntiva'][1])),
-                               int(dfa['prima_dose'][2])-int(int(dfa['seconda_dose'][2])+int(dfa['dose_aggiuntiva'][2])), int(dfa['prima_dose'][3])-int(int(dfa['seconda_dose'][3])+int(dfa['dose_aggiuntiva'][3])),
-                               int(dfa['prima_dose'][4])-int(int(dfa['seconda_dose'][4])+int(dfa['dose_aggiuntiva'][4])), int(dfa['prima_dose'][5])-int(int(dfa['seconda_dose'][5])+int(dfa['dose_aggiuntiva'][5])),
-                               int(dfa['prima_dose'][6])-int(int(dfa['seconda_dose'][6])+int(dfa['dose_aggiuntiva'][6])),
-                               int(int(dfa['prima_dose'][7])-int(int(dfa['seconda_dose'][7])+int(dfa['dose_aggiuntiva'][7]))) + int(int(dfa['prima_dose'][8])-(int(dfa['seconda_dose'][8])+int(dfa['dose_aggiuntiva'][8])))],
+            'data': [go.Bar(x=[int(dfa['prima_dose'][0])-int(int(dfa['seconda_dose'][0])-int(dfa['dose_aggiuntiva'][0])), int(dfa['prima_dose'][1])-int(int(dfa['seconda_dose'][1])-int(dfa['dose_aggiuntiva'][1])),
+                               int(dfa['prima_dose'][2])-int(int(dfa['seconda_dose'][2])-int(dfa['dose_aggiuntiva'][2])), int(dfa['prima_dose'][3])-int(int(dfa['seconda_dose'][3])-int(dfa['dose_aggiuntiva'][3])),
+                               int(dfa['prima_dose'][4])-int(int(dfa['seconda_dose'][4])-int(dfa['dose_aggiuntiva'][4])), int(dfa['prima_dose'][5])-int(int(dfa['seconda_dose'][5])-int(dfa['dose_aggiuntiva'][5])),
+                               int(dfa['prima_dose'][6])-int(int(dfa['seconda_dose'][6])-int(dfa['dose_aggiuntiva'][6])),
+                               int(int(dfa['prima_dose'][7])-int(int(dfa['seconda_dose'][7])-int(dfa['dose_aggiuntiva'][7]))) + int(int(dfa['prima_dose'][8])-(int(dfa['seconda_dose'][8])-int(dfa['dose_aggiuntiva'][8])))],
                             y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
                             marker_color='#F5C05F',
@@ -709,11 +688,11 @@ def vaccine_age_bar(regione):
         dfa1 = reg_ds1.copy().groupby('fascia_anagrafica').agg({'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_aggiuntiva': 'sum'}).reset_index()
         reg_dfe1 = dfe1.loc[dfe1['nome_area'] == reg]
         figure_age = {
-            'data': [go.Bar(x=[int(dfa1['prima_dose'][0])-int(int(dfa1['seconda_dose'][0])+int(dfa1['dose_aggiuntiva'][0])), int(dfa1['prima_dose'][1])-int(int(dfa1['seconda_dose'][1])+int(dfa1['dose_aggiuntiva'][1])),
-                               int(dfa1['prima_dose'][2])-int(int(dfa1['seconda_dose'][2])+int(dfa1['dose_aggiuntiva'][2])), int(dfa1['prima_dose'][3])-int(int(dfa1['seconda_dose'][3])+int(dfa1['dose_aggiuntiva'][3])),
-                               int(dfa1['prima_dose'][4])-int(int(dfa1['seconda_dose'][4])+int(dfa1['dose_aggiuntiva'][4])), int(dfa1['prima_dose'][5])-int(int(dfa1['seconda_dose'][5])+int(dfa1['dose_aggiuntiva'][5])),
-                               int(dfa1['prima_dose'][6])-int(int(dfa1['seconda_dose'][6])+int(dfa1['dose_aggiuntiva'][6])),
-                               int(int(dfa1['prima_dose'][7])-int(int(dfa1['seconda_dose'][7])+int(dfa1['dose_aggiuntiva'][7]))) + int(int(dfa1['prima_dose'][8])-(int(dfa1['seconda_dose'][8])+int(dfa1['dose_aggiuntiva'][8])))],
+            'data': [go.Bar(x=[int(dfa1['prima_dose'][0])-int(int(dfa1['seconda_dose'][0])-int(dfa1['dose_aggiuntiva'][0])), int(dfa1['prima_dose'][1])-int(int(dfa1['seconda_dose'][1])-int(dfa1['dose_aggiuntiva'][1])),
+                               int(dfa1['prima_dose'][2])-int(int(dfa1['seconda_dose'][2])-int(dfa1['dose_aggiuntiva'][2])), int(dfa1['prima_dose'][3])-int(int(dfa1['seconda_dose'][3])-int(dfa1['dose_aggiuntiva'][3])),
+                               int(dfa1['prima_dose'][4])-int(int(dfa1['seconda_dose'][4])-int(dfa1['dose_aggiuntiva'][4])), int(dfa1['prima_dose'][5])-int(int(dfa1['seconda_dose'][5])-int(dfa1['dose_aggiuntiva'][5])),
+                               int(dfa1['prima_dose'][6])-int(int(dfa1['seconda_dose'][6])-int(dfa1['dose_aggiuntiva'][6])),
+                               int(int(dfa1['prima_dose'][7])-int(int(dfa1['seconda_dose'][7])-int(dfa1['dose_aggiuntiva'][7]))) + int(int(dfa1['prima_dose'][8])-(int(dfa1['seconda_dose'][8])-int(dfa1['dose_aggiuntiva'][8])))],
                             y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
                             marker_color='#F5C05F',
@@ -787,14 +766,14 @@ def previsione():
     month_last_day_80_p = str(ora + timedelta(days=month_day_80_p))[:10]
     # second
     month_day_s = ((60360000 - int(tot_seconda)) / int(month_seconda)) * month_day_passati
-    month_last_day_s = str(ora + timedelta(days=month_day_s))[:10]
+    month_last_day_s = str(ora + timedelta(days=month_day_s) + timedelta(days=month_day_p))[:10]
     month_day_80_s = ((48288000 - int(tot_seconda)) / int(month_seconda)) * month_day_passati
-    month_last_day_80_s = str(ora + timedelta(days=month_day_80_s))[:10]
+    month_last_day_80_s = str(ora + timedelta(days=month_day_80_s) + timedelta(days=month_day_80_p))[:10]
     # third
-    #month_day_t = ((60360000 - int(tot_terza)) / int(month_terza)) * month_day_passati
-    #month_last_day_t = str(ora + timedelta(days=month_day_t))[:10]
-    #month_day_80_t = ((48288000 - int(tot_terza)) / int(month_terza)) * month_day_passati
-    #month_last_day_80_t = str(ora + timedelta(days=month_day_80_t))[:10]
+    month_day_t = ((60360000 - int(tot_terza)) / int(month_terza)) * month_day_passati
+    month_last_day_t = str(ora + timedelta(days=month_day_t) + timedelta(days=month_day_s) + timedelta(days=month_day_p))[:10]
+    month_day_80_t = ((48288000 - int(tot_terza)) / int(month_terza)) * month_day_passati
+    month_last_day_80_t = str(ora + timedelta(days=month_day_80_t) + timedelta(days=month_day_80_s) + timedelta(days=month_day_80_p))[:10]
     # last day 80% vaccine
     month_last_day_vaccine = month_last_day_80_p
 
@@ -833,7 +812,7 @@ def previsione():
                                            type='scatter',
                                            name='Previsione Mensile 2ª Dose',
                                            line=go.scatter.Line(color="#78F5B3")),
-                                go.Scatter(x=[ds_dosi['data_somministrazione'][l - 1]],#, month_last_day_80_t, month_last_day_t],
+                                go.Scatter(x=[ds_dosi['data_somministrazione'][l - 1], month_last_day_80_t, month_last_day_t],
                                            y=[int(tot_terza) / 60360000, 0.8, 1],
                                            type='scatter',
                                            name='Previsione Mensile 3ª Dose',
@@ -843,7 +822,8 @@ def previsione():
                                 'barmode': 'stack',
                                 'xaxis': dict(
                                     rangeslider=dict(visible=False),
-                                    type='date'
+                                    type='date',
+                                    range=['2020-12-27', '2023-04-01']
                                 ),
                                 'yaxis': dict(
                                     tickformat=',.0%',  # percentage on y axis
@@ -898,11 +878,11 @@ def velocity_dosi_graph(regione):
         regione = [regione]
     for reg in regione:
         ds2 = ds1[ds1['nome_area'] == reg]
-        ds_dosi_velocity = ds2.groupby('data_somministrazione').agg({'prima_dose': 'sum', 'nome_area': 'last'}).reset_index()
+        ds_dosi_velocity = ds2.groupby('data_somministrazione').agg({'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_aggiuntiva': 'sum', 'nome_area': 'last'}).reset_index()
         data.append(ds_dosi_velocity)
     data.pop(0)
     for dati in data:
-        traces.append(go.Scatter({'x': dati['data_somministrazione'], 'y': dati['prima_dose'], 'mode': 'lines',
+        traces.append(go.Scatter({'x': dati['data_somministrazione'], 'y': dati['prima_dose']+dati['seconda_dose']+dati['dose_aggiuntiva'], 'mode': 'lines',
                                   'name': f"{dati['nome_area'].iloc[0]}"}))
     traces.pop(0)
 
@@ -1237,7 +1217,7 @@ def layout():
              " in ", html.B("Italia"), " di cui ", html.Mark([html.B(str(tot_janssenf)), " monodose"], style={'background-color': '#F5C05F'}), html.Br(),
              "A questo ritmo l' ", html.B("80% della popolazione"), " sarà vaccinata entro il ", html.Mark([str(month_last_day_vaccine)], style={'background-color': '#F5C05F'})])),
         # velocity
-        html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H2('Velocità vaccinazioni')), html.Center(html.I('I dati sono calcolati sulle somministrazioni delle prime dosi', style={'font-size': '14px'}))]),
+        html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H2('Velocità vaccinazioni')), html.Center(html.I('I dati sono calcolati con tutte le dosi', style={'font-size': '14px'}))]),
         html.Div([dropdown_velocity_dosi_graph()]),
         html.Div([html.Div(id='velocity_dosi_graph')], className='container-1'),
         # effect
@@ -1256,4 +1236,5 @@ def layout():
 app.layout = layout
 
 if __name__ == '__main__':
-    app.run_server(host='0.0.0.0', port=8050, debug=False)
+    app.run_server(debug=True)
+    # app.run_server(host='0.0.0.0', port=8050, debug=False)
