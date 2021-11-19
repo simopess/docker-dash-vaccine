@@ -830,15 +830,15 @@ def previsione():
                         figure={
                             'data': [
                                 go.Bar(x=ds_dosi['data_somministrazione'],
-                                       y=(ds_dosi['dose_aggiuntiva'].cumsum()) / 60360000,
+                                       y=((ds_dosi['dose_booster'].cumsum()) / 60360000),
                                        name='Incremento Terze Dosi', marker=dict(color='#B768FE')),
                                 go.Bar(x=ds_dosi['data_somministrazione'],
-                                       y=((ds_dosi['seconda_dose'].cumsum()) / 60360000) - ((ds_dosi['dose_aggiuntiva'].cumsum()) / 60360000),
+                                       y=((ds_dosi['seconda_dose'].cumsum()) / 60360000) - ((ds_dosi['dose_booster'].cumsum()) / 60360000),
                                        text=(((ds_dosi['seconda_dose'].cumsum()) / 60360000) * 100).tolist(),
                                        name='Incremento Seconde Dosi', marker=dict(color='#78F5B3'),
                                        hovertemplate='%{text:.0f}' + '%'),
                                 go.Bar(x=ds_dosi['data_somministrazione'],
-                                       y=((ds_dosi['prima_dose'].cumsum()) / 60360000) - ((ds_dosi['seconda_dose'].cumsum()) / 60360000) - ((ds_dosi['dose_aggiuntiva'].cumsum()) / 60360000),
+                                       y=((ds_dosi['prima_dose'].cumsum()) / 60360000) - ((ds_dosi['seconda_dose'].cumsum()) / 60360000),
                                        text=(((ds_dosi['prima_dose'].cumsum()) / 60360000) * 100).tolist(),
                                        name='Incremento Prime Dosi', marker=dict(color='#F5C05F'),
                                        hovertemplate='%{text:.0f}' + '%'),
