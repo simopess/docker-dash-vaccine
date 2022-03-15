@@ -19,7 +19,7 @@ last_update = ''  # last update
 max_prima_f = ''  # max first dose in 1day
 tot_janssenf = ''  # tot only 1 dose format
 tot_janssen = ''  # tot only 1 dose
-month_last_day_vaccine = ''  # 70% population vaccine date
+month_last_day_vaccine = ''  # 90% population vaccine date
 percent_mese = ''  # percentage
 percent_mese_vaccine = ''
 percent_mese_death = ''  # percentage death
@@ -755,6 +755,11 @@ def previsione():
     date_format = "%Y-%m-%d"  # date format
     ora = datetime.strptime(str(today), date_format)
     l = len(ds_dosi['data_somministrazione'])  # total vaccine day
+    sett = 42252000  #70
+    settc = 45270000  #75
+    ott = 48288000  #80%
+    ottc= 51306000  #85%
+    nov = 54324000  #90%
     # month
     month_prima = ds_dosi.loc[ds_dosi['data_somministrazione'].between(str(ora - relativedelta(months=1))[:10], str(ora)[:10]), ['prima_dose']].sum()
     month_seconda = ds_dosi.loc[ds_dosi['data_somministrazione'].between(str(ora - relativedelta(months=1))[:10], str(ora)[:10]), ['seconda_dose']].sum()
@@ -763,20 +768,20 @@ def previsione():
     # first
     month_day_p = ((60360000 - int(tot_prima)) / int(month_prima)) * month_day_passati
     month_last_day_p = str(ora + timedelta(days=month_day_p))[:10]
-    month_day_80_p = ((48288000 - int(tot_prima)) / int(month_prima)) * month_day_passati
-    month_last_day_80_p = str(ora + timedelta(days=month_day_80_p))[:10]
+    month_day_90_p = ((ottc - int(tot_prima)) / int(month_prima)) * month_day_passati  # 85%
+    month_last_day_90_p = str(ora + timedelta(days=month_day_90_p))[:10]
     # second
     month_day_s = ((60360000 - int(tot_seconda)) / int(month_seconda)) * month_day_passati
     month_last_day_s = str(ora + timedelta(days=month_day_s) + timedelta(days=month_day_p))[:10]
-    month_day_80_s = ((48288000 - int(tot_seconda)) / int(month_seconda)) * month_day_passati
-    month_last_day_80_s = str(ora + timedelta(days=month_day_80_s) + timedelta(days=month_day_80_p))[:10]
+    month_day_90_s = ((ott - int(tot_seconda)) / int(month_seconda)) * month_day_passati  # 80%
+    month_last_day_90_s = str(ora + timedelta(days=month_day_90_s) + timedelta(days=month_day_90_p))[:10]
     # third
     month_day_t = ((60360000 - int(tot_terza)) / int(month_terza)) * month_day_passati
     month_last_day_t = str(ora + timedelta(days=month_day_t) + timedelta(days=month_day_s) + timedelta(days=month_day_p))[:10]
-    month_day_80_t = ((48288000 - int(tot_terza)) / int(month_terza)) * month_day_passati
-    month_last_day_80_t = str(ora + timedelta(days=month_day_80_t) + timedelta(days=month_day_80_s) + timedelta(days=month_day_80_p))[:10]
-    # last day 80% vaccine
-    month_last_day_vaccine = month_last_day_80_p
+    month_day_90_t = ((sett - int(tot_terza)) / int(month_terza)) * month_day_passati  # 70%
+    month_last_day_90_t = str(ora + timedelta(days=month_day_90_t) + timedelta(days=month_day_90_s) + timedelta(days=month_day_90_p))[:10]
+    # last day 90% vaccine
+    month_last_day_vaccine = month_last_day_90_p
 
     return html.Div(  # main div
         dbc.Container([
@@ -803,18 +808,18 @@ def previsione():
                                            mode='lines',
                                            name='Previsione del Governo Vaccinati',
                                            line=go.scatter.Line(color="#FA5541")),
-                                go.Scatter(x=[ds_dosi['data_somministrazione'][l - 1], month_last_day_80_p, month_last_day_p],
-                                           y=[int(tot_prima) / 60360000, 0.8, 1],
+                                go.Scatter(x=[ds_dosi['data_somministrazione'][l - 1], month_last_day_90_p, month_last_day_p],
+                                           y=[int(tot_prima) / 60360000, 0.85, 1],
                                            type='scatter',
                                            name='Previsione Mensile 1ª Dose',
                                            line=go.scatter.Line(color="#F5C05F")),
-                                go.Scatter(x=[ds_dosi['data_somministrazione'][l - 1], month_last_day_80_s, month_last_day_s],
+                                go.Scatter(x=[ds_dosi['data_somministrazione'][l - 1], month_last_day_90_s, month_last_day_s],
                                            y=[int(tot_seconda) / 60360000, 0.8, 1],
                                            type='scatter',
                                            name='Previsione Mensile 2ª Dose',
                                            line=go.scatter.Line(color="#78F5B3")),
-                                go.Scatter(x=[ds_dosi['data_somministrazione'][l - 1], month_last_day_80_t, month_last_day_t],
-                                           y=[int(tot_terza) / 60360000, 0.8, 1],
+                                go.Scatter(x=[ds_dosi['data_somministrazione'][l - 1], month_last_day_90_t, month_last_day_t],
+                                           y=[int(tot_terza) / 60360000, 0.7, 1],
                                            type='scatter',
                                            name='Previsione Mensile 3ª Dose',
                                            line=go.scatter.Line(color="#B768FE")),
@@ -833,7 +838,7 @@ def previsione():
                                 'legend': dict(
                                     orientation="h",
                                     xanchor="center",
-                                    x=0.5, y=-0.2,
+                                    x=0.1, y=-0.2,
                                     itemclick=False, itemdoubleclick=False
                                 )
                             }
@@ -1237,4 +1242,5 @@ def layout():
 app.layout = layout
 
 if __name__ == '__main__':
-    app.run_server(host='0.0.0.0', port=8050, debug=False)
+    app.run_server(debug=True)
+    # app.run_server(host='0.0.0.0', port=8050, debug=False)
