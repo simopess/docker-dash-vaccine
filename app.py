@@ -444,6 +444,7 @@ def vaccine_daily(regione):
     ds_dosi_totali = 0
     tot_consegne = '{:,}'.format(int(tot_consegne)).replace(',', '.')
     tot_vaccini = '{:,}'.format(int(tot_vaccini)).replace(',', '.')
+    
     # formatting data
     if len(dc_dosi_consegnate) == 0:
         dc_dosi_consegnate = 0
