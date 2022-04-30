@@ -13,6 +13,7 @@ fascia_anagrafica = 'https://raw.githubusercontent.com/italia/covid19-opendata-v
 somministrazioni = 'https://raw.githubusercontent.com/italia/covid19-opendata-vaccini/master/dati/somministrazioni-vaccini-latest.csv'
 decessi_contagi = 'https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-andamento-nazionale/dpc-covid19-ita-andamento-nazionale.csv'
 decessi_contagi_regioni = 'https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-regioni/dpc-covid19-ita-regioni.csv'
+guariti = 'https://raw.githubusercontent.com/italia/covid19-opendata-vaccini/master/dati/soggetti-guariti.csv'
 population = 0
 
 last_update = ''  # last update
@@ -35,6 +36,7 @@ ds = pandas.read_csv(somministrazioni)
 ddc = pandas.read_csv(decessi_contagi)
 ddcr = pandas.read_csv(decessi_contagi_regioni)
 dfe = pandas.read_csv(fascia_anagrafica)
+dg = pandas.read_csv(guariti)
 regions = ds['nome_area'].drop_duplicates().tolist()  # all regions
 
 plotly_js_minified = ['https://cdn.plot.ly/plotly-basic-latest.min.js']
@@ -58,8 +60,8 @@ slider_button = list([
 def refresh_data():
     global today, last_update, max_prima_f
     global dc, ds, dfa, ddc, dfe, tot_dfe, ds_dosi
-    global tot_prima_dose, tot_seconda_dose, tot_terza_dose, tot_prima, tot_seconda, tot_terza, tot_covid, tot_with_covid
-    global percent_mese_death, percent_mese
+    global tot_prima_dose, tot_seconda_dose, tot_terza_dose, tot_prima, tot_seconda, tot_terza, tot_covid, tot_with_covid, tot_quarta, tot_quarta_dose
+    global percent_mese_death, percent_mese, healed_no, healed_with
     # read csv for url and get date
     dc = pandas.read_csv(consegne)
     ds = pandas.read_csv(somministrazioni)
@@ -70,7 +72,7 @@ def refresh_data():
     # doses delivered
     dc = dc.groupby('data_consegna').agg({'numero_dosi': 'sum'}).reset_index()
     # doses administered
-    ds_dosi = ds.groupby('data_somministrazione').agg({'prima_dose': 'sum', 'seconda_dose': 'sum', 'pregressa_infezione': 'sum', 'dose_addizionale_booster': 'sum'}).reset_index()
+    ds_dosi = ds.groupby('data_somministrazione').agg({'prima_dose': 'sum', 'seconda_dose': 'sum', 'pregressa_infezione': 'sum', 'dose_addizionale_booster': 'sum', 'booster_immuno': 'sum', 'd2_booster': 'sum'}).reset_index()
 
     #last update date
     ds_prime_dosi = ds_dosi.loc[ds_dosi['data_somministrazione'] == str(today), 'prima_dose']
@@ -101,11 +103,19 @@ def refresh_data():
     # third dose from the start
     tot_terza = ds_dosi.loc[ds_dosi['data_somministrazione'].between('2021-09-15', str(today)), ['dose_addizionale_booster']].sum()
     tot_terza_dose = '{:,}'.format(int(tot_terza)).replace(',', '.')
+    # third dose from the start
+    tot_quarta_immuni = ds_dosi.loc[ds_dosi['data_somministrazione'].between('2022-02-01', str(today)), ['booster_immuno']].sum()
+    tot_quarta_booster = ds_dosi.loc[ds_dosi['data_somministrazione'].between('2022-02-01', str(today)), ['d2_booster']].sum()
+    tot_quarta = int(tot_quarta_immuni)+int(tot_quarta_booster)
+    tot_quarta_dose = '{:,}'.format(int(tot_quarta)).replace(',', '.')
     # with covid
     tot_covid = ds_dosi.loc[ds_dosi['data_somministrazione'].between('2020-12-27', str(today)), ['pregressa_infezione']].sum()
     tot_with_covid = '{:,}'.format(int(tot_covid)).replace(',', '.')
+    # healed
+    healed_no = dg['guariti_senza_somm'].sum()
+    healed_with = dg['guariti_post_somm'].sum()
     # age
-    dfa = ds.groupby('fascia_anagrafica').agg({'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum'}).reset_index()
+    dfa = ds.groupby('fascia_anagrafica').agg({'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum', 'booster_immuno': 'sum', 'd2_booster': 'sum'}).reset_index()
     tot_dfe = dfe.groupby('fascia_anagrafica').agg({'totale_popolazione': 'sum'}).reset_index()
 
 
@@ -120,7 +130,7 @@ def get_dropdown_data():
 
 # total vaccine status
 def vaccine_update():
-    global primadose, secondadose, terzadose
+    global primadose, secondadose, terzadose, quartadose
     janssen = ds.loc[ds['fornitore'] == 'Janssen'].groupby('data_somministrazione').agg({'prima_dose': 'sum'}).reset_index()
     tot_janssen = janssen.loc[janssen['data_somministrazione'].between('2021-04-05', str(today)), ['prima_dose']].sum()
     # percentage
@@ -130,14 +140,18 @@ def vaccine_update():
     secondadose = round((int(t_secondadose)/60360000)*100, 2)
     terza = int(tot_terza)
     terzadose = round((int(terza) / 60360000) * 100, 2)
+    quarta = int(tot_quarta)
+    quartadose = round((int(quarta) / 60360000) * 100, 2)
     # percentage platea
     p_primadose = round((int(prima) / 50773718) * 100, 2)
     p_secondadose = round((int(t_secondadose) / 50773718) * 100, 2)
     p_terzadose = round((int(terza) / 50773718) * 100, 2)
+    p_quartadose = round((int(quarta) / 50773718) * 100, 2)
     # formating
     tot_prima_dose = '{:,}'.format(int(prima)).replace(',', '.')
     tot_seconda_dose = '{:,}'.format(int(t_secondadose)).replace(',', '.')
     tot_terza_dose = '{:,}'.format(int(terza)).replace(',', '.')
+    tot_quarta_dose = '{:,}'.format(int(quarta)).replace(',', '.')
 
     return html.Div([
         html.Div([
@@ -163,7 +177,7 @@ def vaccine_update():
                     ))
                 ]),
             ], className='table')
-        ], className='container-3'),
+        ], className='container-4'),
         html.Div([
             html.Table([
                 html.Tr([
@@ -187,7 +201,7 @@ def vaccine_update():
                     ))
                 ]),
             ], className='table')
-        ], className='container-3'),
+        ], className='container-4'),
         html.Div([
             html.Table([
                 html.Tr([
@@ -211,7 +225,31 @@ def vaccine_update():
                     ))
                 ]),
             ], className='table')
-        ], className='container-3')
+        ], className='container-4'),
+        html.Div([
+            html.Table([
+                html.Tr([
+                    html.Td('Quarta dose', style={'font-size': '14px'}),
+                ]),
+                html.Tr([
+                    html.Td(
+                        html.H1(tot_quarta_dose, style={'color': '#5B3EAB', 'font-size': '45px'})
+                    ),
+                ]),
+                # Percentage platea
+                html.Tr([
+                    html.Td(html.B(
+                        str(p_quartadose) + '% della platea', style={'color': '#5B3EAB', 'font-size': '14px'}
+                    ))
+                ]),
+                # Percentage
+                html.Tr([
+                    html.Td(html.B(
+                        str(quartadose) + '% della popolazione', style={'color': '#5B3EAB', 'font-size': '14px'}
+                    ))
+                ]),
+            ], className='table')
+        ], className='container-4')
     ], className='container-1')
 
 
@@ -264,18 +302,63 @@ def vaccine_update_mono():
     ], className='container-1')
 
 
+# total vaccine status
+def vaccine_healed():
+    # percentage
+    t_healed_no = round((int(healed_no) / 60360000) * 100, 2)
+    t_healed_with = round((int(healed_with) / 60360000) * 100, 2)
+    # percentage platea
+    p_healed_no = round((int(healed_no) / 50773718) * 100, 2)
+    p_healed_with = round((int(healed_with) / 50773718) * 100, 2)
+    # formating
+    tot_healed_no = '{:,}'.format(int(healed_no)).replace(',', '.')
+    tot_healed_with = '{:,}'.format(int(healed_with)).replace(',', '.')
+    return html.Div([
+        html.Div([
+            html.Table([
+                html.Tr([
+                    html.Td('Guariti senza somministrazione', style={'font-size': '14px'}),
+                ]),
+                html.Tr([
+                    html.Td(
+                        html.H1(tot_healed_no, style={'color': '#454A4D', 'font-size': '30px'})
+                    ),
+                ]),
+                html.Tr([
+                    html.Td(
+                        html.B('' + str(p_healed_no) + '% della platea e ' + str(t_healed_no) + '% della popolazione', style={'color': '#454A4D', 'font-size': '12px'})
+                    )
+                ]),
+            ], className='table')
+        ], className='container-2'),
+        html.Div([
+            html.Table([
+                html.Tr([
+                    html.Td('Guariti con somministrazione', style={'font-size': '14px'}),
+                ]),
+                html.Tr([
+                    html.Td(html.H1(tot_healed_with, style={'color': '#454A4D', 'font-size': '30px'})),
+                ]),
+                html.Tr([
+                    html.Td(html.B('' + str(p_healed_with) + '% della platea e ' + str(t_healed_with) + '% della popolazione', style={'color': '#454A4D', 'font-size': '12px'})
+                    )
+                ]),
+            ], className='table')
+        ], className='container-2'),
+    ], className='container-1')
+
 def vaccine_update_bar():
     return html.Div([
         html.Div([
             dcc.Graph(
                 figure={
-                    'data': [go.Bar(x=[60360000, 50773718, int(tot_seconda)+int(tot_janssen)+int(tot_covid), int(tot_prima)-int(tot_janssen), int(tot_terza)],
-                                    y=['Popolazione', 'Platea', 'Vaccinati', 'Prima dose', 'Terza dose'],
+                    'data': [go.Bar(x=[60360000, 50773718, int(tot_seconda)+int(tot_janssen)+int(tot_covid), int(tot_prima)-int(tot_janssen), int(tot_terza), int(tot_quarta)],
+                                    y=['Popolazione', 'Platea', 'Vaccinati', 'Prima dose', 'Terza dose', 'Quarta dose'],
                                     orientation='h',
-                                    marker_color=['#6181E8', '#5EAEFF', '#E83A8E', '#F5C05F', '#B768FE'])
+                                    marker_color=['#6181E8', '#5EAEFF', '#E83A8E', '#F5C05F', '#B768FE', '#5B3EAB'])
                              ],
                     'layout': {
-                        'height': 270,  # px
+                        'height': 280,  # px
                         'xaxis': dict(rangeslider=dict(visible=False))
                     },
                 }, config=chart_config
@@ -315,17 +398,23 @@ def vaccine_daily(regione):
         ds_prime_dosi = ds_dosi.loc[ds_dosi['data_somministrazione'] == str(today), 'prima_dose']
         ds_seconde_dosi = ds_dosi.loc[ds_dosi['data_somministrazione'] == str(today), 'seconda_dose']
         ds_terze_dosi = ds_dosi.loc[ds_dosi['data_somministrazione'] == str(today), 'dose_addizionale_booster']
+        ds_quarta_immuno = ds_dosi.loc[ds_dosi['data_somministrazione'] == str(today), 'booster_immuno']
+        ds_quarta_booster = ds_dosi.loc[ds_dosi['data_somministrazione'] == str(today), 'd2_booster']
+        ds_quarte_dosi = ds_quarta_immuno+ds_quarta_booster
         # check today data
         if len(dc_dosi_consegnate) == 0 and len(ds_prime_dosi) == 0 and len(ds_seconde_dosi) == 0:
             dc_dosi_consegnate = dc.loc[dc['data_consegna'] == str(date.today() - timedelta(days=1)), 'numero_dosi']
             ds_prime_dosi = ds_dosi.loc[ds_dosi['data_somministrazione'] == str(date.today() - timedelta(days=1)), 'prima_dose']
             ds_seconde_dosi = ds_dosi.loc[ds_dosi['data_somministrazione'] == str(date.today() - timedelta(days=1)), 'seconda_dose']
             ds_terze_dosi = ds_dosi.loc[ds_dosi['data_somministrazione'] == str(date.today() - timedelta(days=1)), 'dose_addizionale_booster']
+            ds_quarta_immuno = ds_dosi.loc[ds_dosi['data_somministrazione'] == str(date.today() - timedelta(days=1)), 'booster_immuno']
+            ds_quarta_booster = ds_dosi.loc[ds_dosi['data_somministrazione'] == str(date.today() - timedelta(days=1)), 'd2_booster']
+            ds_quarte_dosi = ds_quarta_immuno+ds_quarta_booster
     else:
         dc1 = pandas.read_csv(consegne)
         ds1 = pandas.read_csv(somministrazioni)
         reg_ds1 = ds1.loc[ds1['nome_area'] == regione]
-        ds_dosi1 = reg_ds1.copy().groupby('data_somministrazione').agg({'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum'}).reset_index()
+        ds_dosi1 = reg_ds1.copy().groupby('data_somministrazione').agg({'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum', 'booster_immuno': 'sum', 'd2_booster': 'sum'}).reset_index()
         tot_prima1 = ds_dosi1.loc[ds_dosi1['data_somministrazione'].between('2020-12-27', str(today)), ['prima_dose']].sum()
         tot_seconda1 = ds_dosi1.loc[ds_dosi1['data_somministrazione'].between('2020-12-27', str(today)), ['seconda_dose']].sum()
         reg_dc1 = dc1.loc[dc1['nome_area'] == regione]
@@ -338,6 +427,9 @@ def vaccine_daily(regione):
         ds_prime_dosi = ds_dosi1.loc[ds_dosi1['data_somministrazione'] == str(today), 'prima_dose']
         ds_seconde_dosi = ds_dosi1.loc[ds_dosi1['data_somministrazione'] == str(today), 'seconda_dose']
         ds_terze_dosi = ds_dosi1.loc[ds_dosi1['data_somministrazione'] == str(today), 'dose_addizionale_booster']
+        ds_quarta_immuno = ds_dosi.loc[ds_dosi['data_somministrazione'] == str(today), 'booster_immuno']
+        ds_quarta_booster = ds_dosi.loc[ds_dosi['data_somministrazione'] == str(today), 'd2_booster']
+        ds_quarte_dosi = ds_quarta_immuno+ds_quarta_booster
 
         # check today data
         if len(dc_dosi_consegnate) == 0 and len(ds_prime_dosi) == 0 and len(ds_seconde_dosi) == 0:
@@ -345,6 +437,9 @@ def vaccine_daily(regione):
             ds_prime_dosi = ds_dosi1.loc[ds_dosi1['data_somministrazione'] == str(date.today() - timedelta(days=1)), 'prima_dose']
             ds_seconde_dosi = ds_dosi1.loc[ds_dosi1['data_somministrazione'] == str(date.today() - timedelta(days=1)), 'seconda_dose']
             ds_terze_dosi = ds_dosi1.loc[ds_dosi1['data_somministrazione'] == str(date.today() - timedelta(days=1)), 'dose_addizionale_booster']
+            ds_quarta_immuno = ds_dosi.loc[ds_dosi['data_somministrazione'] == str(date.today() - timedelta(days=1)), 'booster_immuno']
+            ds_quarta_booster = ds_dosi.loc[ds_dosi['data_somministrazione'] == str(date.today() - timedelta(days=1)), 'd2_booster']
+            ds_quarte_dosi = ds_quarta_immuno+ds_quarta_booster
     ds_dosi_totali = 0
     tot_consegne = '{:,}'.format(int(tot_consegne)).replace(',', '.')
     tot_vaccini = '{:,}'.format(int(tot_vaccini)).replace(',', '.')
@@ -371,6 +466,12 @@ def vaccine_daily(regione):
     else:
         ds_dosi_totali = ds_dosi_totali + int(ds_terze_dosi)
         ds_terze_dosi = '{:,}'.format(int(ds_terze_dosi)).replace(',', '.')
+    if len(ds_quarte_dosi) == 0:
+        ds_quarte_dosi = 0
+        ds_dosi_totali = ds_dosi_totali + int(ds_quarte_dosi)
+    else:
+        ds_dosi_totali = ds_dosi_totali + int(ds_quarte_dosi)
+        ds_quarte_dosi = '{:,}'.format(int(ds_quarte_dosi)).replace(',', '.')
     if ds_dosi_totali != 0:
         ds_dosi_totali = '{:,}'.format(int(ds_dosi_totali)).replace(',', '.')
 
@@ -393,7 +494,7 @@ def vaccine_daily(regione):
                     )
                 ])
             ], className='table')
-        ], className='container-3'),
+        ], className='container-4'),
         # vaccine
         html.Div([
             html.Table([
@@ -412,7 +513,7 @@ def vaccine_daily(regione):
                     )
                 ])
             ], className='table')
-        ], className='container-3'),
+        ], className='container-4'),
         # thrid doses
         html.Div([
             html.Table([
@@ -431,7 +532,25 @@ def vaccine_daily(regione):
                     )
                 ])
             ], className='table')
-        ], className='container-3'),
+        ], className='container-4'),
+        html.Div([
+            html.Table([
+                html.Tr([
+                    html.Td('Quarte Dosi', style={'font-size': '14px'})
+                ]),
+                html.Tr([
+                    html.Td(
+                        html.H1('+ ' + str(ds_quarte_dosi) + '', style={'color': '#5B3EAB', 'font-size': '45px'})
+                    )
+                ]),
+                # Yesterday
+                html.Tr([
+                    html.Td(
+                        html.B('Totali: ' + str(tot_quarta_dose), style={'color': '#5B3EAB', 'font-size': '14px'})
+                    )
+                ])
+            ], className='table')
+        ], className='container-4'),
         # vaccine
         html.Div([
             html.Table([
@@ -480,27 +599,27 @@ def vaccine_graph(regione):
     if regione == 'Dato Nazionale':
         # vaccine
         ds_pfizer = ds.loc[ds['fornitore'] == 'Pfizer/BioNTech'].groupby('data_somministrazione').agg(
-            {'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum'}).reset_index()
+            {'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum', 'booster_immuno': 'sum', 'd2_booster': 'sum'}).reset_index()
         ds_moderna = ds.loc[ds['fornitore'] == 'Moderna'].groupby('data_somministrazione').agg(
-            {'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum'}).reset_index()
+            {'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum', 'booster_immuno': 'sum', 'd2_booster': 'sum'}).reset_index()
         ds_astra = ds.loc[ds['fornitore'] == 'Vaxzevria (AstraZeneca)'].groupby('data_somministrazione').agg(
-            {'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum'}).reset_index()
+            {'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum', 'booster_immuno': 'sum', 'd2_booster': 'sum'}).reset_index()
         ds_janssen = ds.loc[ds['fornitore'] == 'Janssen'].groupby('data_somministrazione').agg(
-            {'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum'}).reset_index()
+            {'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum', 'booster_immuno': 'sum', 'd2_booster': 'sum'}).reset_index()
     else:
         # vaccine
         ds1 = pandas.read_csv(somministrazioni)
         reg_ds1 = ds1.loc[ds1['nome_area'] == regione]
         ds_dosi1 = reg_ds1.copy().groupby('data_somministrazione').agg(
-            {'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum', 'fornitore': 'last'}).reset_index()
+            {'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum', 'booster_immuno': 'sum', 'd2_booster': 'sum', 'fornitore': 'last'}).reset_index()
         ds_pfizer = ds_dosi1.loc[ds_dosi1['fornitore'] == 'Pfizer/BioNTech'].groupby('data_somministrazione').agg(
-            {'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum'}).reset_index()
+            {'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum', 'booster_immuno': 'sum', 'd2_booster': 'sum'}).reset_index()
         ds_moderna = ds_dosi1.loc[ds_dosi1['fornitore'] == 'Moderna'].groupby('data_somministrazione').agg(
-            {'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum'}).reset_index()
+            {'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum', 'booster_immuno': 'sum', 'd2_booster': 'sum'}).reset_index()
         ds_astra = ds_dosi1.loc[ds_dosi1['fornitore'] == 'Vaxzevria (AstraZeneca)'].groupby('data_somministrazione').agg(
-            {'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum'}).reset_index()
+            {'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum', 'booster_immuno': 'sum', 'd2_booster': 'sum'}).reset_index()
         ds_janssen = ds_dosi1.loc[ds_dosi1['fornitore'] == 'Janssen'].groupby('data_somministrazione').agg(
-            {'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum'}).reset_index()
+            {'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum', 'booster_immuno': 'sum', 'd2_booster': 'sum'}).reset_index()
     return html.Div([
         dbc.Container([
             dbc.Row(
@@ -509,22 +628,22 @@ def vaccine_graph(regione):
                         figure={
                             'data': [
                                 {'x': ds_astra['data_somministrazione'],
-                                 'y': ds_astra['prima_dose'] + ds_astra['seconda_dose'] + ds_astra['dose_addizionale_booster'],
+                                 'y': ds_astra['prima_dose'] + ds_astra['seconda_dose'] + ds_astra['dose_addizionale_booster'] + ds_astra['booster_immuno'] + ds_astra['d2_booster'],
                                  'type': 'bar',
                                  'name': 'AstraZeneca',
                                  'marker': dict(color='#537BE0')},
                                 {'x': ds_pfizer['data_somministrazione'],
-                                 'y': ds_pfizer['prima_dose'] + ds_pfizer['seconda_dose'] + ds_pfizer['dose_addizionale_booster'],
+                                 'y': ds_pfizer['prima_dose'] + ds_pfizer['seconda_dose'] + ds_pfizer['dose_addizionale_booster'] + ds_pfizer['booster_immuno'] + ds_pfizer['d2_booster'],
                                  'type': 'bar',
                                  'name': 'Pfizer',
                                  'marker': dict(color='#95A9DE')},
                                 {'x': ds_moderna['data_somministrazione'],
-                                 'y': ds_moderna['prima_dose'] + ds_moderna['seconda_dose'] + ds_moderna['dose_addizionale_booster'],
+                                 'y': ds_moderna['prima_dose'] + ds_moderna['seconda_dose'] + ds_moderna['dose_addizionale_booster'] + ds_moderna['booster_immuno'] + ds_moderna['d2_booster'],
                                  'type': 'bar',
                                  'name': 'Moderna',
                                  'marker': dict(color='#395499')},
                                 {'x': ds_janssen['data_somministrazione'],
-                                 'y': ds_janssen['prima_dose'] + ds_janssen['seconda_dose'] + ds_janssen['dose_addizionale_booster'],
+                                 'y': ds_janssen['prima_dose'] + ds_janssen['seconda_dose'] + ds_janssen['dose_addizionale_booster'] + ds_janssen['booster_immuno'] + ds_janssen['d2_booster'],
                                  'type': 'bar',
                                  'name': 'Janssen',
                                  'marker': dict(color='#243561')},
@@ -557,11 +676,11 @@ def vaccine_graph(regione):
 # vaccine and doses graph
 def dosi_graph(regione):
     if regione == 'Dato Nazionale':
-        prima_seconda = ds.groupby('data_somministrazione').agg({'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum'}).reset_index()
+        prima_seconda = ds.groupby('data_somministrazione').agg({'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum', 'booster_immuno': 'sum', 'd2_booster': 'sum'}).reset_index()
     else:
         ds1 = pandas.read_csv(somministrazioni)
         reg_ds1 = ds1.loc[ds1['nome_area'] == regione]
-        prima_seconda = reg_ds1.copy().groupby('data_somministrazione').agg({'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum'}).reset_index()
+        prima_seconda = reg_ds1.copy().groupby('data_somministrazione').agg({'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum', 'booster_immuno': 'sum', 'd2_booster': 'sum'}).reset_index()
     return html.Div([
             dbc.Container([
                 dbc.Row(
@@ -578,6 +697,9 @@ def dosi_graph(regione):
                                     go.Bar(x=prima_seconda['data_somministrazione'],
                                            y=prima_seconda['dose_addizionale_booster'],
                                            name='Terza Dose', marker=dict(color='#B768FE')),
+                                    go.Bar(x=prima_seconda['data_somministrazione'],
+                                           y=prima_seconda['booster_immuno']+prima_seconda['d2_booster'],
+                                           name='Quarta Dose', marker=dict(color='#5B3EAB')),
                                 ],
                                 'layout': {
                                     'barmode': 'stack',
@@ -625,41 +747,66 @@ def dropdown_vaccine_age_bar():
 def vaccine_age_bar(regione):
     if regione == 'Dato Nazionale':
         figure_age = {
-            'data': [go.Bar(x=[int(dfa['prima_dose'][0])-int(int(dfa['seconda_dose'][0])-int(dfa['dose_addizionale_booster'][0])), int(dfa['prima_dose'][1])-int(int(dfa['seconda_dose'][1])-int(dfa['dose_addizionale_booster'][1])),
-                               int(dfa['prima_dose'][2])-int(int(dfa['seconda_dose'][2])-int(dfa['dose_addizionale_booster'][2])), int(dfa['prima_dose'][3])-int(int(dfa['seconda_dose'][3])-int(dfa['dose_addizionale_booster'][3])),
-                               int(dfa['prima_dose'][4])-int(int(dfa['seconda_dose'][4])-int(dfa['dose_addizionale_booster'][4])), int(dfa['prima_dose'][5])-int(int(dfa['seconda_dose'][5])-int(dfa['dose_addizionale_booster'][5])),
-                               int(dfa['prima_dose'][6])-int(int(dfa['seconda_dose'][6])-int(dfa['dose_addizionale_booster'][6])),
-                               int(int(dfa['prima_dose'][7])-int(int(dfa['seconda_dose'][7])-int(dfa['dose_addizionale_booster'][7]))) + int(int(dfa['prima_dose'][8])-(int(dfa['seconda_dose'][8])-int(dfa['dose_addizionale_booster'][8])))],
+            'data': [go.Bar(x=[int(dfa['prima_dose'][0])-int(int(dfa['seconda_dose'][0])-int(dfa['dose_addizionale_booster'][0])-(int(dfa['booster_immuno'][0])+int(dfa['d2_booster'][0]))),
+                               int(dfa['prima_dose'][1])-int(int(dfa['seconda_dose'][1])-int(dfa['dose_addizionale_booster'][1])-(int(dfa['booster_immuno'][1])+int(dfa['d2_booster'][1]))),
+                               int(dfa['prima_dose'][2])-int(int(dfa['seconda_dose'][2])-int(dfa['dose_addizionale_booster'][2])-(int(dfa['booster_immuno'][2])+int(dfa['d2_booster'][2]))),
+                               int(dfa['prima_dose'][3])-int(int(dfa['seconda_dose'][3])-int(dfa['dose_addizionale_booster'][3])-(int(dfa['booster_immuno'][3])+int(dfa['d2_booster'][3]))),
+                               int(dfa['prima_dose'][4])-int(int(dfa['seconda_dose'][4])-int(dfa['dose_addizionale_booster'][4])-(int(dfa['booster_immuno'][4])+int(dfa['d2_booster'][4]))),
+                               int(dfa['prima_dose'][5])-int(int(dfa['seconda_dose'][5])-int(dfa['dose_addizionale_booster'][5])-(int(dfa['booster_immuno'][5])+int(dfa['d2_booster'][5]))),
+                               int(dfa['prima_dose'][6])-int(int(dfa['seconda_dose'][6])-int(dfa['dose_addizionale_booster'][6])-(int(dfa['booster_immuno'][6])+int(dfa['d2_booster'][6]))),
+                               int(int(dfa['prima_dose'][7])-int(int(dfa['seconda_dose'][7])-int(dfa['dose_addizionale_booster'][7])-(int(dfa['booster_immuno'][7])+int(dfa['d2_booster'][7])))) + int(int(dfa['prima_dose'][8])-(int(dfa['seconda_dose'][8])-int(dfa['dose_addizionale_booster'][8])-(int(dfa['booster_immuno'][8])+int(dfa['d2_booster'][8]))))],
                             y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
                             marker_color='#F5C05F',
                             name='Prima Dose'
                             ),
-                     go.Bar(x=[int(dfa['seconda_dose'][0])-int(dfa['dose_addizionale_booster'][0]), int(dfa['seconda_dose'][1])-int(dfa['dose_addizionale_booster'][1]),
-                               int(dfa['seconda_dose'][2])-int(dfa['dose_addizionale_booster'][2]), int(dfa['seconda_dose'][3])-int(dfa['dose_addizionale_booster'][3]),
-                               int(dfa['seconda_dose'][4])-int(dfa['dose_addizionale_booster'][4]), int(dfa['seconda_dose'][5])-int(dfa['dose_addizionale_booster'][5]),
-                               int(dfa['seconda_dose'][6])-int(dfa['dose_addizionale_booster'][6]),
-                               int(int(dfa['seconda_dose'][7])-int(dfa['dose_addizionale_booster'][7]))+int(int(dfa['seconda_dose'][8])-int(dfa['dose_addizionale_booster'][8]))],
+                     go.Bar(x=[int(dfa['seconda_dose'][0])-int(dfa['dose_addizionale_booster'][0])-(int(dfa['booster_immuno'][0])+int(dfa['d2_booster'][0])),
+                               int(dfa['seconda_dose'][1])-int(dfa['dose_addizionale_booster'][1])-(int(dfa['booster_immuno'][1])+int(dfa['d2_booster'][1])),
+                               int(dfa['seconda_dose'][2])-int(dfa['dose_addizionale_booster'][2])-(int(dfa['booster_immuno'][2])+int(dfa['d2_booster'][2])),
+                               int(dfa['seconda_dose'][3])-int(dfa['dose_addizionale_booster'][3])-(int(dfa['booster_immuno'][3])+int(dfa['d2_booster'][3])),
+                               int(dfa['seconda_dose'][4])-int(dfa['dose_addizionale_booster'][4])-(int(dfa['booster_immuno'][4])+int(dfa['d2_booster'][4])),
+                               int(dfa['seconda_dose'][5])-int(dfa['dose_addizionale_booster'][5])-(int(dfa['booster_immuno'][5])+int(dfa['d2_booster'][5])),
+                               int(dfa['seconda_dose'][6])-int(dfa['dose_addizionale_booster'][6])-(int(dfa['booster_immuno'][6])+int(dfa['d2_booster'][6])),
+                               int(int(dfa['seconda_dose'][7])-int(dfa['dose_addizionale_booster'][7])-(int(dfa['booster_immuno'][7])+int(dfa['d2_booster'][7])))+int(int(dfa['seconda_dose'][8])-int(dfa['dose_addizionale_booster'][8])-(int(dfa['booster_immuno'][8])+int(dfa['d2_booster'][8])))],
                             y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
                             marker_color='#E83A8E',
                             name='Seconda Dose'
                             ),
-                     go.Bar(x=[int(dfa['dose_addizionale_booster'][0]), int(dfa['dose_addizionale_booster'][1]), int(dfa['dose_addizionale_booster'][2]),
-                               int(dfa['dose_addizionale_booster'][3]), int(dfa['dose_addizionale_booster'][4]), int(dfa['dose_addizionale_booster'][4]),
-                               int(dfa['dose_addizionale_booster'][6]), int(dfa['dose_addizionale_booster'][8])+int(dfa['dose_addizionale_booster'][8])],
+                     go.Bar(x=[int(dfa['dose_addizionale_booster'][0]) - (int(dfa['booster_immuno'][0]) + int(dfa['d2_booster'][0])),
+                               int(dfa['dose_addizionale_booster'][1]) - (int(dfa['booster_immuno'][1]) + int(dfa['d2_booster'][1])),
+                               int(dfa['dose_addizionale_booster'][2]) - (int(dfa['booster_immuno'][2]) + int(dfa['d2_booster'][2])),
+                               int(dfa['dose_addizionale_booster'][3]) - (int(dfa['booster_immuno'][3]) + int(dfa['d2_booster'][3])),
+                               int(dfa['dose_addizionale_booster'][4]) - (int(dfa['booster_immuno'][4]) + int(dfa['d2_booster'][4])),
+                               int(dfa['dose_addizionale_booster'][5]) - (int(dfa['booster_immuno'][5]) + int(dfa['d2_booster'][5])),
+                               int(dfa['dose_addizionale_booster'][6]) - (int(dfa['booster_immuno'][6]) + int(dfa['d2_booster'][6])),
+                               int(int(dfa['dose_addizionale_booster'][7]) - (int(dfa['booster_immuno'][7]) + int(dfa['d2_booster'][7]))) + int(int(dfa['dose_addizionale_booster'][8]) - (int(dfa['booster_immuno'][8]) + int(dfa['d2_booster'][8])))],
                             y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
                             marker_color='#B768FE',
                             name='Terza Dose'
                             ),
-                     go.Bar(x=[int(tot_dfe.loc[tot_dfe.index[0], 'totale_popolazione']) - int(dfa['prima_dose'][0]),
-                               int(tot_dfe.loc[tot_dfe.index[1], 'totale_popolazione']) - int(dfa['prima_dose'][1]),
-                               int(tot_dfe.loc[tot_dfe.index[2], 'totale_popolazione']) - int(dfa['prima_dose'][2]),
-                               int(tot_dfe.loc[tot_dfe.index[3], 'totale_popolazione']) - int(dfa['prima_dose'][3]),
-                               int(tot_dfe.loc[tot_dfe.index[4], 'totale_popolazione']) - int(dfa['prima_dose'][4]),
-                               int(tot_dfe.loc[tot_dfe.index[5], 'totale_popolazione']) - int(dfa['prima_dose'][5]),
-                               int(tot_dfe.loc[tot_dfe.index[6], 'totale_popolazione']) - int(dfa['prima_dose'][6]),
+
+                     go.Bar(x=[int(dfa['booster_immuno'][0]) + int(dfa['d2_booster'][0]),
+                               int(dfa['booster_immuno'][1]) + int(dfa['d2_booster'][1]),
+                               int(dfa['booster_immuno'][2]) + int(dfa['d2_booster'][2]),
+                               int(dfa['booster_immuno'][3]) + int(dfa['d2_booster'][3]),
+                               int(dfa['booster_immuno'][4]) + int(dfa['d2_booster'][4]),
+                               int(dfa['booster_immuno'][5]) + int(dfa['d2_booster'][5]),
+                               int(dfa['booster_immuno'][6]) + int(dfa['d2_booster'][6]),
+                               int(int(dfa['booster_immuno'][7]) + int(dfa['d2_booster'][7]))+int(int(dfa['booster_immuno'][8]) + int(dfa['d2_booster'][8]))],
+                            y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
+                            orientation='h',
+                            marker_color='#5B3EAB',
+                            name='Quarta Dose'
+                            ),
+                     go.Bar(x=[int(tot_dfe.loc[tot_dfe.index[0], 'totale_popolazione']) - int(dfa['seconda_dose'][0]),
+                               int(tot_dfe.loc[tot_dfe.index[1], 'totale_popolazione']) - int(dfa['seconda_dose'][1]),
+                               int(tot_dfe.loc[tot_dfe.index[2], 'totale_popolazione']) - int(dfa['seconda_dose'][2]),
+                               int(tot_dfe.loc[tot_dfe.index[3], 'totale_popolazione']) - int(dfa['seconda_dose'][3]),
+                               int(tot_dfe.loc[tot_dfe.index[4], 'totale_popolazione']) - int(dfa['seconda_dose'][4]),
+                               int(tot_dfe.loc[tot_dfe.index[5], 'totale_popolazione']) - int(dfa['seconda_dose'][5]),
+                               int(tot_dfe.loc[tot_dfe.index[6], 'totale_popolazione']) - int(dfa['seconda_dose'][6]),
                                int(int(tot_dfe.loc[tot_dfe.index[7], 'totale_popolazione'])+int(tot_dfe.loc[tot_dfe.index[8], 'totale_popolazione'])) - int(int(dfa['prima_dose'][7])+int(dfa['prima_dose'][8]))],
                             y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
@@ -689,41 +836,66 @@ def vaccine_age_bar(regione):
         dfa1 = reg_ds1.copy().groupby('fascia_anagrafica').agg({'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum'}).reset_index()
         reg_dfe1 = dfe1.loc[dfe1['nome_area'] == reg]
         figure_age = {
-            'data': [go.Bar(x=[int(dfa1['prima_dose'][0])-int(int(dfa1['seconda_dose'][0])-int(dfa1['dose_addizionale_booster'][0])), int(dfa1['prima_dose'][1])-int(int(dfa1['seconda_dose'][1])-int(dfa1['dose_addizionale_booster'][1])),
-                               int(dfa1['prima_dose'][2])-int(int(dfa1['seconda_dose'][2])-int(dfa1['dose_addizionale_booster'][2])), int(dfa1['prima_dose'][3])-int(int(dfa1['seconda_dose'][3])-int(dfa1['dose_addizionale_booster'][3])),
-                               int(dfa1['prima_dose'][4])-int(int(dfa1['seconda_dose'][4])-int(dfa1['dose_addizionale_booster'][4])), int(dfa1['prima_dose'][5])-int(int(dfa1['seconda_dose'][5])-int(dfa1['dose_addizionale_booster'][5])),
-                               int(dfa1['prima_dose'][6])-int(int(dfa1['seconda_dose'][6])-int(dfa1['dose_addizionale_booster'][6])),
-                               int(int(dfa1['prima_dose'][7])-int(int(dfa1['seconda_dose'][7])-int(dfa1['dose_addizionale_booster'][7]))) + int(int(dfa1['prima_dose'][8])-(int(dfa1['seconda_dose'][8])-int(dfa1['dose_addizionale_booster'][8])))],
+            'data': [go.Bar(x=[int(dfa1['prima_dose'][0])-int(int(dfa1['seconda_dose'][0])-int(dfa1['dose_addizionale_booster'][0])-(int(dfa1['booster_immuno'][0])+int(dfa1['d2_booster'][0]))),
+                               int(dfa1['prima_dose'][1])-int(int(dfa1['seconda_dose'][1])-int(dfa1['dose_addizionale_booster'][1])-(int(dfa1['booster_immuno'][1])+int(dfa1['d2_booster'][1]))),
+                               int(dfa1['prima_dose'][2])-int(int(dfa1['seconda_dose'][2])-int(dfa1['dose_addizionale_booster'][2])-(int(dfa1['booster_immuno'][2])+int(dfa1['d2_booster'][2]))),
+                               int(dfa1['prima_dose'][3])-int(int(dfa1['seconda_dose'][3])-int(dfa1['dose_addizionale_booster'][3])-(int(dfa1['booster_immuno'][3])+int(dfa1['d2_booster'][3]))),
+                               int(dfa1['prima_dose'][4])-int(int(dfa1['seconda_dose'][4])-int(dfa1['dose_addizionale_booster'][4])-(int(dfa1['booster_immuno'][4])+int(dfa1['d2_booster'][4]))),
+                               int(dfa1['prima_dose'][5])-int(int(dfa1['seconda_dose'][5])-int(dfa1['dose_addizionale_booster'][5])-(int(dfa1['booster_immuno'][5])+int(dfa1['d2_booster'][5]))),
+                               int(dfa1['prima_dose'][6])-int(int(dfa1['seconda_dose'][6])-int(dfa1['dose_addizionale_booster'][6])-(int(dfa1['booster_immuno'][6])+int(dfa1['d2_booster'][6]))),
+                               int(int(dfa1['prima_dose'][7])-int(int(dfa1['seconda_dose'][7])-int(dfa1['dose_addizionale_booster'][7])-(int(dfa1['booster_immuno'][7])+int(dfa1['d2_booster'][7])))) + int(int(dfa1['prima_dose'][8])-(int(dfa1['seconda_dose'][8])-int(dfa1['dose_addizionale_booster'][8])-(int(dfa1['booster_immuno'][8])+int(dfa1['d2_booster'][8]))))],
                             y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
                             marker_color='#F5C05F',
                             name='Prima Dose'
                             ),
-                     go.Bar(x=[int(dfa1['seconda_dose'][0])-int(dfa1['dose_addizionale_booster'][0]), int(dfa1['seconda_dose'][1])-int(dfa1['dose_addizionale_booster'][1]),
-                               int(dfa1['seconda_dose'][2])-int(dfa1['dose_addizionale_booster'][2]), int(dfa1['seconda_dose'][3])-int(dfa1['dose_addizionale_booster'][3]),
-                               int(dfa1['seconda_dose'][4])-int(dfa1['dose_addizionale_booster'][4]), int(dfa1['seconda_dose'][5])-int(dfa1['dose_addizionale_booster'][5]),
-                               int(dfa1['seconda_dose'][6])-int(dfa1['dose_addizionale_booster'][6]),
-                               int(int(dfa1['seconda_dose'][7])-int(dfa1['dose_addizionale_booster'][7]))+int(int(dfa1['seconda_dose'][8])-int(dfa1['dose_addizionale_booster'][8]))],
+                     go.Bar(x=[int(dfa1['seconda_dose'][0])-int(dfa1['dose_addizionale_booster'][0])-(int(dfa1['booster_immuno'][0])+int(dfa1['d2_booster'][0])),
+                               int(dfa1['seconda_dose'][1])-int(dfa1['dose_addizionale_booster'][1])-(int(dfa1['booster_immuno'][1])+int(dfa1['d2_booster'][1])),
+                               int(dfa1['seconda_dose'][2])-int(dfa1['dose_addizionale_booster'][2])-(int(dfa1['booster_immuno'][2])+int(dfa1['d2_booster'][2])),
+                               int(dfa1['seconda_dose'][3])-int(dfa1['dose_addizionale_booster'][3])-(int(dfa1['booster_immuno'][3])+int(dfa1['d2_booster'][3])),
+                               int(dfa1['seconda_dose'][4])-int(dfa1['dose_addizionale_booster'][4])-(int(dfa1['booster_immuno'][4])+int(dfa1['d2_booster'][4])),
+                               int(dfa1['seconda_dose'][5])-int(dfa1['dose_addizionale_booster'][5])-(int(dfa1['booster_immuno'][5])+int(dfa1['d2_booster'][5])),
+                               int(dfa1['seconda_dose'][6])-int(dfa1['dose_addizionale_booster'][6])-(int(dfa1['booster_immuno'][6])+int(dfa1['d2_booster'][6])),
+                               int(int(dfa1['seconda_dose'][7])-int(dfa1['dose_addizionale_booster'][7])-(int(dfa1['booster_immuno'][7])+int(dfa1['d2_booster'][7])))+int(int(dfa1['seconda_dose'][8])-int(dfa1['dose_addizionale_booster'][8])-(int(dfa1['booster_immuno'][8])+int(dfa1['d2_booster'][8])))],
                             y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
                             marker_color='#E83A8E',
                             name='Seconda Dose'
                             ),
-                     go.Bar(x=[int(dfa1['dose_addizionale_booster'][0]), int(dfa1['dose_addizionale_booster'][1]), int(dfa1['dose_addizionale_booster'][2]),
-                               int(dfa1['dose_addizionale_booster'][3]), int(dfa1['dose_addizionale_booster'][4]), int(dfa1['dose_addizionale_booster'][4]),
-                               int(dfa1['dose_addizionale_booster'][6]), int(dfa1['dose_addizionale_booster'][8])+int(dfa1['dose_addizionale_booster'][8])],
+                     go.Bar(x=[int(dfa1['dose_addizionale_booster'][0]) - (int(dfa1['booster_immuno'][0]) + int(dfa1['d2_booster'][0])),
+                               int(dfa1['dose_addizionale_booster'][1]) - (int(dfa1['booster_immuno'][1]) + int(dfa1['d2_booster'][1])),
+                               int(dfa1['dose_addizionale_booster'][2]) - (int(dfa1['booster_immuno'][2]) + int(dfa1['d2_booster'][2])),
+                               int(dfa1['dose_addizionale_booster'][3]) - (int(dfa1['booster_immuno'][3]) + int(dfa1['d2_booster'][3])),
+                               int(dfa1['dose_addizionale_booster'][4]) - (int(dfa1['booster_immuno'][4]) + int(dfa1['d2_booster'][4])),
+                               int(dfa1['dose_addizionale_booster'][5]) - (int(dfa1['booster_immuno'][5]) + int(dfa1['d2_booster'][5])),
+                               int(dfa1['dose_addizionale_booster'][6]) - (int(dfa1['booster_immuno'][6]) + int(dfa1['d2_booster'][6])),
+                               int(int(dfa1['dose_addizionale_booster'][7]) - (int(dfa1['booster_immuno'][7]) + int(dfa1['d2_booster'][7]))) + int(int(dfa1['dose_addizionale_booster'][8]) - (int(dfa1['booster_immuno'][8]) + int(dfa1['d2_booster'][8])))],
                             y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
                             marker_color='#B768FE',
                             name='Terza Dose'
                             ),
-                     go.Bar(x=[int(reg_dfe1.loc[reg_dfe1.index[0], 'totale_popolazione']) - int(dfa1['prima_dose'][0]),
-                               int(reg_dfe1.loc[reg_dfe1.index[1], 'totale_popolazione']) - int(dfa1['prima_dose'][1]),
-                               int(reg_dfe1.loc[reg_dfe1.index[2], 'totale_popolazione']) - int(dfa1['prima_dose'][2]),
-                               int(reg_dfe1.loc[reg_dfe1.index[3], 'totale_popolazione']) - int(dfa1['prima_dose'][3]),
-                               int(reg_dfe1.loc[reg_dfe1.index[4], 'totale_popolazione']) - int(dfa1['prima_dose'][4]),
-                               int(reg_dfe1.loc[reg_dfe1.index[5], 'totale_popolazione']) - int(dfa1['prima_dose'][5]),
-                               int(reg_dfe1.loc[reg_dfe1.index[6], 'totale_popolazione']) - int(dfa1['prima_dose'][6]),
+
+                     go.Bar(x=[int(dfa1['booster_immuno'][0]) + int(dfa1['d2_booster'][0]),
+                               int(dfa1['booster_immuno'][1]) + int(dfa1['d2_booster'][1]),
+                               int(dfa1['booster_immuno'][2]) + int(dfa1['d2_booster'][2]),
+                               int(dfa1['booster_immuno'][3]) + int(dfa1['d2_booster'][3]),
+                               int(dfa1['booster_immuno'][4]) + int(dfa1['d2_booster'][4]),
+                               int(dfa1['booster_immuno'][5]) + int(dfa1['d2_booster'][5]),
+                               int(dfa1['booster_immuno'][6]) + int(dfa1['d2_booster'][6]),
+                               int(int(dfa1['booster_immuno'][7]) + int(dfa1['d2_booster'][7]))+int(int(dfa1['booster_immuno'][8]) + int(dfa1['d2_booster'][8]))],
+                            y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
+                            orientation='h',
+                            marker_color='#5B3EAB',
+                            name='Quarta Dose'
+                            ),
+                     go.Bar(x=[int(reg_dfe1.loc[reg_dfe1.index[0], 'totale_popolazione']) - int(dfa1['seconda_dose'][0]),
+                               int(reg_dfe1.loc[reg_dfe1.index[1], 'totale_popolazione']) - int(dfa1['seconda_dose'][1]),
+                               int(reg_dfe1.loc[reg_dfe1.index[2], 'totale_popolazione']) - int(dfa1['seconda_dose'][2]),
+                               int(reg_dfe1.loc[reg_dfe1.index[3], 'totale_popolazione']) - int(dfa1['seconda_dose'][3]),
+                               int(reg_dfe1.loc[reg_dfe1.index[4], 'totale_popolazione']) - int(dfa1['seconda_dose'][4]),
+                               int(reg_dfe1.loc[reg_dfe1.index[5], 'totale_popolazione']) - int(dfa1['seconda_dose'][5]),
+                               int(reg_dfe1.loc[reg_dfe1.index[6], 'totale_popolazione']) - int(dfa1['seconda_dose'][6]),
                                int(int(reg_dfe1.loc[reg_dfe1.index[7], 'totale_popolazione'])+int(reg_dfe1.loc[reg_dfe1.index[8], 'totale_popolazione'])) - int(int(dfa1['prima_dose'][7])+int(dfa1['prima_dose'][8]))],
                             y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
@@ -764,6 +936,9 @@ def previsione():
     month_prima = ds_dosi.loc[ds_dosi['data_somministrazione'].between(str(ora - relativedelta(months=1))[:10], str(ora)[:10]), ['prima_dose']].sum()
     month_seconda = ds_dosi.loc[ds_dosi['data_somministrazione'].between(str(ora - relativedelta(months=1))[:10], str(ora)[:10]), ['seconda_dose']].sum()
     month_terza = ds_dosi.loc[ds_dosi['data_somministrazione'].between(str(ora - relativedelta(months=1))[:10], str(ora)[:10]), ['dose_addizionale_booster']].sum()
+    month_quarta_i = ds_dosi.loc[ds_dosi['data_somministrazione'].between(str(ora - relativedelta(months=1))[:10], str(ora)[:10]), ['booster_immuno']].sum()
+    month_quarta_b = ds_dosi.loc[ds_dosi['data_somministrazione'].between(str(ora - relativedelta(months=1))[:10], str(ora)[:10]), ['d2_booster']].sum()
+    month_quarta = int(month_quarta_i) + int(month_quarta_b)
     month_day_passati = (ora - (ora - relativedelta(months=1))).days
     # first
     month_day_p = ((60360000 - int(tot_prima)) / int(month_prima)) * month_day_passati
@@ -780,6 +955,12 @@ def previsione():
     month_last_day_t = str(ora + timedelta(days=month_day_t) + timedelta(days=month_day_s) + timedelta(days=month_day_p))[:10]
     month_day_90_t = ((sett - int(tot_terza)) / int(month_terza)) * month_day_passati  # 70%
     month_last_day_90_t = str(ora + timedelta(days=month_day_90_t) + timedelta(days=month_day_90_s) + timedelta(days=month_day_90_p))[:10]
+    # fourth
+    month_day_q = ((60360000 - int(tot_quarta)) / month_quarta) * month_day_passati
+    month_last_day_q = str(ora + timedelta(days=month_day_q) + timedelta(days=month_day_t) + timedelta(days=month_day_s) + timedelta(days=month_day_p))[:10]
+    month_day_90_q = ((sett - int(tot_quarta)) / int(month_quarta)) * month_day_passati  # 70%
+    month_last_day_90_q = str(ora + timedelta(days=month_day_90_q) + timedelta(days=month_day_90_t) + timedelta(days=month_day_90_s) + timedelta(days=month_day_90_p))[:10]
+
     # last day 90% vaccine
     month_last_day_vaccine = month_last_day_90_p
 
@@ -791,7 +972,10 @@ def previsione():
                         figure={
                             'data': [
                                 go.Bar(x=ds_dosi['data_somministrazione'],
-                                       y=((ds_dosi['dose_addizionale_booster'].cumsum()) / 60360000),
+                                       y=(((ds_dosi['booster_immuno'].cumsum()) / 60360000) + ((ds_dosi['d2_booster'].cumsum()) / 60360000)),
+                                       name='Incremento Quarte Dosi', marker=dict(color='#5B3EAB')),
+                                go.Bar(x=ds_dosi['data_somministrazione'],
+                                       y=(((ds_dosi['dose_addizionale_booster'].cumsum()) / 60360000) - (((ds_dosi['booster_immuno'].cumsum()) / 60360000) + ((ds_dosi['d2_booster'].cumsum()) / 60360000))),
                                        name='Incremento Terze Dosi', marker=dict(color='#B768FE')),
                                 go.Bar(x=ds_dosi['data_somministrazione'],
                                        y=((ds_dosi['seconda_dose'].cumsum()) / 60360000) - ((ds_dosi['dose_addizionale_booster'].cumsum()) / 60360000),
@@ -823,6 +1007,12 @@ def previsione():
                                            type='scatter',
                                            name='Previsione Mensile 3ª Dose',
                                            line=go.scatter.Line(color="#B768FE")),
+                                go.Scatter(
+                                    x=[ds_dosi['data_somministrazione'][l - 1], month_last_day_90_q, month_last_day_q],
+                                    y=[int(tot_quarta) / 60360000, 0.7, 1],
+                                    type='scatter',
+                                    name='Previsione Mensile 4ª Dose',
+                                    line=go.scatter.Line(color="#5B3EAB")),
                             ],
                             'layout': {
                                 'barmode': 'stack',
@@ -884,11 +1074,11 @@ def velocity_dosi_graph(regione):
         regione = [regione]
     for reg in regione:
         ds2 = ds1[ds1['nome_area'] == reg]
-        ds_dosi_velocity = ds2.groupby('data_somministrazione').agg({'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum', 'nome_area': 'last'}).reset_index()
+        ds_dosi_velocity = ds2.groupby('data_somministrazione').agg({'prima_dose': 'sum', 'seconda_dose': 'sum', 'dose_addizionale_booster': 'sum', 'booster_immuno': 'sum', 'd2_booster': 'sum', 'nome_area': 'last'}).reset_index()
         data.append(ds_dosi_velocity)
     data.pop(0)
     for dati in data:
-        traces.append(go.Scatter({'x': dati['data_somministrazione'], 'y': dati['prima_dose']+dati['seconda_dose']+dati['dose_addizionale_booster'], 'mode': 'lines',
+        traces.append(go.Scatter({'x': dati['data_somministrazione'], 'y': dati['prima_dose']+dati['seconda_dose']+dati['dose_addizionale_booster']+dati['booster_immuno']+dati['d2_booster'], 'mode': 'lines',
                                   'name': f"{dati['nome_area'].iloc[0]}"}))
     traces.pop(0)
 
@@ -1199,11 +1389,12 @@ def layout():
         html.Div([vaccine_update_bar()]),  # orizzonatl bar
         # text
         html.Div(html.Center(html.I([html.Br(), "L'obiettivo della campagna di vaccinazione della popolazione è prevenire le morti da COVID-19 e raggiungere al più presto ",
-                                     html.B("l'immunità di gregge"), " per il SARS-CoV2", html.Br(), "La campagna è partita il ", html.B("27 dicembre"), ", ad oggi il ",
-                                     html.B(str(primadose)+" %"), " della popolazione italiana è ", html.B("parzialmente protetto"), html.Br(), "Mentre il ", html.B(str(secondadose)+" %"),
-                                     " della popolazione ha completato il ciclo vaccinale", html.Br(), "La ", html.B("terza dose"), " verrà somministrata inizialmente a trapiantati e immunodepressi"], style={'font-size': 'large'}))),
+                                     html.B("l'immunità di gregge"), " per il SARS-CoV2", html.Br(), "La campagna è partita il ", html.B("27 dicembre 2020"), ", ad oggi il ",
+                                     html.B(str(secondadose)+" %"), " della popolazione ha completato il ciclo vaccinale", html.Br(), "La ", html.B("quarta dose"),
+                                     " verrà somministrata inizialmente a trapiantati e immunodepressi", html.Br(), html.Br(), html.Br()], style={'font-size': 'large'}))),
+        html.Div([vaccine_healed()]),
         # daily data
-        html.Div([html.Br(), html.Br(), html.Br(), html.Center(html.H1('Dati del Giorno')), html.Center(html.I('dati aggionati del '+str(last_update), style={'font-size': '14px'})), html.Br()]),
+        html.Div([html.Br(), html.Br(), html.Br(), html.Br(), html.Center(html.H1('Dati del Giorno')), html.Center(html.I('dati aggionati del '+str(last_update), style={'font-size': '14px'})), html.Br()]),
         html.Div([dropdown_vaccine_daily(), html.Br()]),  # dropdown
         html.Div(id='vaccine_daily'),
         # vaccine and doses
