@@ -28,6 +28,7 @@ percent_mese_vaccine_death = ''
 primadose = 0
 secondadose = 0
 terzadose = 0  #dose_addizionale_booster
+quartadose = 0
 pandas.options.mode.chained_assignment = None  # default='warn'
 
 # read csv for url and get date
