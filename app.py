@@ -1393,6 +1393,7 @@ def layout():
                                      html.B("l'immunità di gregge"), " per il SARS-CoV2", html.Br(), "La campagna è partita il ", html.B("27 dicembre 2020"), ", ad oggi il ",
                                      html.B(str(secondadose)+" %"), " della popolazione ha completato il ciclo vaccinale", html.Br(), "La ", html.B("quarta dose"),
                                      " verrà somministrata inizialmente a trapiantati e immunodepressi", html.Br(), html.Br(), html.Br()], style={'font-size': 'large'}))),
+        # healed
         html.Div([vaccine_healed()]),
         # daily data
         html.Div([html.Br(), html.Br(), html.Br(), html.Br(), html.Center(html.H1('Dati del Giorno')), html.Center(html.I('dati aggionati del '+str(last_update), style={'font-size': '14px'})), html.Br()]),
