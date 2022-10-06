@@ -73,7 +73,7 @@ def refresh_data():
     # doses delivered
     dc = dc.groupby('data_consegna').agg({'numero_dosi': 'sum'}).reset_index()
     # doses administered
-    ds_dosi = ds.groupby('data').agg({'d1': 'sum', 'd2': 'sum', 'dpi': 'sum', 'db1': 'sum', 'dbi': 'sum', 'db2': 'sum'}).reset_index()
+    ds_dosi = ds.groupby('data').agg({'d1': 'sum', 'd2': 'sum', 'dpi': 'sum', 'db1': 'sum', 'db2': 'sum'}).reset_index()
 
     #last update date
     ds_prime_dosi = ds_dosi.loc[ds_dosi['data'] == str(today), 'd1']
@@ -105,9 +105,7 @@ def refresh_data():
     tot_terza = ds_dosi.loc[ds_dosi['data'].between('2021-09-15', str(today)), ['db1']].sum()
     tot_terza_dose = '{:,}'.format(int(tot_terza)).replace(',', '.')
     # third dose from the start
-    tot_quarta_immuni = ds_dosi.loc[ds_dosi['data'].between('2022-02-01', str(today)), ['dbi']].sum()
-    tot_quarta_booster = ds_dosi.loc[ds_dosi['data'].between('2022-02-01', str(today)), ['db2']].sum()
-    tot_quarta = int(tot_quarta_immuni)+int(tot_quarta_booster)
+    tot_quarta = ds_dosi.loc[ds_dosi['data'].between('2022-02-01', str(today)), ['db2']].sum()
     tot_quarta_dose = '{:,}'.format(int(tot_quarta)).replace(',', '.')
     # with covid
     tot_covid = ds_dosi.loc[ds_dosi['data'].between('2020-12-27', str(today)), ['dpi']].sum()
@@ -116,7 +114,7 @@ def refresh_data():
     healed_no = dg['guariti_senza_somm'].sum()
     healed_with = dg['guariti_post_somm'].sum()
     # age
-    dfa = ds.groupby('eta').agg({'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'dbi': 'sum', 'db2': 'sum'}).reset_index()
+    dfa = ds.groupby('eta').agg({'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'db2': 'sum'}).reset_index()
     tot_dfe = dfe.groupby('eta').agg({'totale_popolazione': 'sum'}).reset_index()
 
 
@@ -399,23 +397,19 @@ def vaccine_daily(regione):
         ds_prime_dosi = ds_dosi.loc[ds_dosi['data'] == str(today), 'd1']
         ds_seconde_dosi = ds_dosi.loc[ds_dosi['data'] == str(today), 'd2']
         ds_terze_dosi = ds_dosi.loc[ds_dosi['data'] == str(today), 'db1']
-        ds_quarta_immuno = ds_dosi.loc[ds_dosi['data'] == str(today), 'dbi']
-        ds_quarta_booster = ds_dosi.loc[ds_dosi['data'] == str(today), 'db2']
-        ds_quarte_dosi = ds_quarta_immuno+ds_quarta_booster
+        ds_quarte_dosi = ds_dosi.loc[ds_dosi['data'] == str(today), 'db2']
         # check today data
         if len(dc_dosi_consegnate) == 0 and len(ds_prime_dosi) == 0 and len(ds_seconde_dosi) == 0:
             dc_dosi_consegnate = dc.loc[dc['data_consegna'] == str(date.today() - timedelta(days=1)), 'numero_dosi']
             ds_prime_dosi = ds_dosi.loc[ds_dosi['data'] == str(date.today() - timedelta(days=1)), 'd1']
             ds_seconde_dosi = ds_dosi.loc[ds_dosi['data'] == str(date.today() - timedelta(days=1)), 'd2']
             ds_terze_dosi = ds_dosi.loc[ds_dosi['data'] == str(date.today() - timedelta(days=1)), 'db1']
-            ds_quarta_immuno = ds_dosi.loc[ds_dosi['data'] == str(date.today() - timedelta(days=1)), 'dbi']
-            ds_quarta_booster = ds_dosi.loc[ds_dosi['data'] == str(date.today() - timedelta(days=1)), 'db2']
-            ds_quarte_dosi = ds_quarta_immuno+ds_quarta_booster
+            ds_quarte_dosi = ds_dosi.loc[ds_dosi['data'] == str(date.today() - timedelta(days=1)), 'db2']
     else:
         dc1 = pandas.read_csv(consegne)
         ds1 = pandas.read_csv(somministrazioni)
         reg_ds1 = ds1.loc[ds1['reg'] == regione]
-        ds_dosi1 = reg_ds1.copy().groupby('data').agg({'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'dbi': 'sum', 'db2': 'sum'}).reset_index()
+        ds_dosi1 = reg_ds1.copy().groupby('data').agg({'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'db2': 'sum'}).reset_index()
         tot_prima1 = ds_dosi1.loc[ds_dosi1['data'].between('2020-12-27', str(today)), ['d1']].sum()
         tot_seconda1 = ds_dosi1.loc[ds_dosi1['data'].between('2020-12-27', str(today)), ['d2']].sum()
         reg_dc1 = dc1.loc[dc1['reg'] == regione]
@@ -428,9 +422,7 @@ def vaccine_daily(regione):
         ds_prime_dosi = ds_dosi1.loc[ds_dosi1['data'] == str(today), 'd1']
         ds_seconde_dosi = ds_dosi1.loc[ds_dosi1['data'] == str(today), 'd2']
         ds_terze_dosi = ds_dosi1.loc[ds_dosi1['data'] == str(today), 'db1']
-        ds_quarta_immuno = ds_dosi.loc[ds_dosi['data'] == str(today), 'dbi']
-        ds_quarta_booster = ds_dosi.loc[ds_dosi['data'] == str(today), 'db2']
-        ds_quarte_dosi = ds_quarta_immuno+ds_quarta_booster
+        ds_quarte_dosi = ds_dosi.loc[ds_dosi['data'] == str(today), 'db2']
 
         # check today data
         if len(dc_dosi_consegnate) == 0 and len(ds_prime_dosi) == 0 and len(ds_seconde_dosi) == 0:
@@ -438,9 +430,7 @@ def vaccine_daily(regione):
             ds_prime_dosi = ds_dosi1.loc[ds_dosi1['data'] == str(date.today() - timedelta(days=1)), 'd1']
             ds_seconde_dosi = ds_dosi1.loc[ds_dosi1['data'] == str(date.today() - timedelta(days=1)), 'd2']
             ds_terze_dosi = ds_dosi1.loc[ds_dosi1['data'] == str(date.today() - timedelta(days=1)), 'db1']
-            ds_quarta_immuno = ds_dosi.loc[ds_dosi['data'] == str(date.today() - timedelta(days=1)), 'dbi']
-            ds_quarta_booster = ds_dosi.loc[ds_dosi['data'] == str(date.today() - timedelta(days=1)), 'db2']
-            ds_quarte_dosi = ds_quarta_immuno+ds_quarta_booster
+            ds_quarte_dosi = ds_dosi.loc[ds_dosi['data'] == str(date.today() - timedelta(days=1)), 'db2']
     ds_dosi_totali = 0
     tot_consegne = '{:,}'.format(int(tot_consegne)).replace(',', '.')
     tot_vaccini = '{:,}'.format(int(tot_vaccini)).replace(',', '.')
@@ -600,27 +590,27 @@ def vaccine_graph(regione):
     if regione == 'Dato Nazionale':
         # vaccine
         ds_pfizer = ds.loc[ds['forn'] == 'Pfizer/BioNTech'].groupby('data').agg(
-            {'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'dbi': 'sum', 'db2': 'sum'}).reset_index()
+            {'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'db2': 'sum'}).reset_index()
         ds_moderna = ds.loc[ds['forn'] == 'Moderna'].groupby('data').agg(
-            {'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'dbi': 'sum', 'db2': 'sum'}).reset_index()
+            {'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'db2': 'sum'}).reset_index()
         ds_astra = ds.loc[ds['forn'] == 'Vaxzevria (AstraZeneca)'].groupby('data').agg(
-            {'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'dbi': 'sum', 'db2': 'sum'}).reset_index()
+            {'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'db2': 'sum'}).reset_index()
         ds_janssen = ds.loc[ds['forn'] == 'Janssen'].groupby('data').agg(
-            {'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'dbi': 'sum', 'db2': 'sum'}).reset_index()
+            {'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'db2': 'sum'}).reset_index()
     else:
         # vaccine
         ds1 = pandas.read_csv(somministrazioni)
         reg_ds1 = ds1.loc[ds1['reg'] == regione]
         ds_dosi1 = reg_ds1.copy().groupby('data').agg(
-            {'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'dbi': 'sum', 'db2': 'sum', 'forn': 'last'}).reset_index()
+            {'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'db2': 'sum', 'forn': 'last'}).reset_index()
         ds_pfizer = ds_dosi1.loc[ds_dosi1['forn'] == 'Pfizer/BioNTech'].groupby('data').agg(
-            {'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'dbi': 'sum', 'db2': 'sum'}).reset_index()
+            {'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'db2': 'sum'}).reset_index()
         ds_moderna = ds_dosi1.loc[ds_dosi1['forn'] == 'Moderna'].groupby('data').agg(
-            {'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'dbi': 'sum', 'db2': 'sum'}).reset_index()
+            {'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'db2': 'sum'}).reset_index()
         ds_astra = ds_dosi1.loc[ds_dosi1['forn'] == 'Vaxzevria (AstraZeneca)'].groupby('data').agg(
-            {'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'dbi': 'sum', 'db2': 'sum'}).reset_index()
+            {'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'db2': 'sum'}).reset_index()
         ds_janssen = ds_dosi1.loc[ds_dosi1['forn'] == 'Janssen'].groupby('data').agg(
-            {'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'dbi': 'sum', 'db2': 'sum'}).reset_index()
+            {'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'db2': 'sum'}).reset_index()
     return html.Div([
         dbc.Container([
             dbc.Row(
@@ -629,22 +619,22 @@ def vaccine_graph(regione):
                         figure={
                             'data': [
                                 {'x': ds_astra['data'],
-                                 'y': ds_astra['d1'] + ds_astra['d2'] + ds_astra['db1'] + ds_astra['dbi'] + ds_astra['db2'],
+                                 'y': ds_astra['d1'] + ds_astra['d2'] + ds_astra['db1'] + ds_astra['db2'],
                                  'type': 'bar',
                                  'name': 'AstraZeneca',
                                  'marker': dict(color='#537BE0')},
                                 {'x': ds_pfizer['data'],
-                                 'y': ds_pfizer['d1'] + ds_pfizer['d2'] + ds_pfizer['db1'] + ds_pfizer['dbi'] + ds_pfizer['db2'],
+                                 'y': ds_pfizer['d1'] + ds_pfizer['d2'] + ds_pfizer['db1'] + ds_pfizer['db2'],
                                  'type': 'bar',
                                  'name': 'Pfizer',
                                  'marker': dict(color='#95A9DE')},
                                 {'x': ds_moderna['data'],
-                                 'y': ds_moderna['d1'] + ds_moderna['d2'] + ds_moderna['db1'] + ds_moderna['dbi'] + ds_moderna['db2'],
+                                 'y': ds_moderna['d1'] + ds_moderna['d2'] + ds_moderna['db1'] + ds_moderna['db2'],
                                  'type': 'bar',
                                  'name': 'Moderna',
                                  'marker': dict(color='#395499')},
                                 {'x': ds_janssen['data'],
-                                 'y': ds_janssen['d1'] + ds_janssen['d2'] + ds_janssen['db1'] + ds_janssen['dbi'] + ds_janssen['db2'],
+                                 'y': ds_janssen['d1'] + ds_janssen['d2'] + ds_janssen['db1'] + ds_janssen['db2'],
                                  'type': 'bar',
                                  'name': 'Janssen',
                                  'marker': dict(color='#243561')},
@@ -677,11 +667,11 @@ def vaccine_graph(regione):
 # vaccine and doses graph
 def dosi_graph(regione):
     if regione == 'Dato Nazionale':
-        prima_seconda = ds.groupby('data').agg({'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'dbi': 'sum', 'db2': 'sum'}).reset_index()
+        prima_seconda = ds.groupby('data').agg({'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'db2': 'sum'}).reset_index()
     else:
         ds1 = pandas.read_csv(somministrazioni)
         reg_ds1 = ds1.loc[ds1['reg'] == regione]
-        prima_seconda = reg_ds1.copy().groupby('data').agg({'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'dbi': 'sum', 'db2': 'sum'}).reset_index()
+        prima_seconda = reg_ds1.copy().groupby('data').agg({'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'db2': 'sum'}).reset_index()
     return html.Div([
             dbc.Container([
                 dbc.Row(
@@ -699,7 +689,7 @@ def dosi_graph(regione):
                                            y=prima_seconda['db1'],
                                            name='Terza Dose', marker=dict(color='#B768FE')),
                                     go.Bar(x=prima_seconda['data'],
-                                           y=prima_seconda['dbi']+prima_seconda['db2'],
+                                           y=prima_seconda['db2'],
                                            name='Quarta Dose', marker=dict(color='#5B3EAB')),
                                 ],
                                 'layout': {
@@ -748,54 +738,54 @@ def dropdown_vaccine_age_bar():
 def vaccine_age_bar(regione):
     if regione == 'Dato Nazionale':
         figure_age = {
-            'data': [go.Bar(x=[int(dfa['d1'][0])-int(int(dfa['d2'][0])-int(dfa['db1'][0])-(int(dfa['dbi'][0])+int(dfa['db2'][0]))),
-                               int(dfa['d1'][1])-int(int(dfa['d2'][1])-int(dfa['db1'][1])-(int(dfa['dbi'][1])+int(dfa['db2'][1]))),
-                               int(dfa['d1'][2])-int(int(dfa['d2'][2])-int(dfa['db1'][2])-(int(dfa['dbi'][2])+int(dfa['db2'][2]))),
-                               int(dfa['d1'][3])-int(int(dfa['d2'][3])-int(dfa['db1'][3])-(int(dfa['dbi'][3])+int(dfa['db2'][3]))),
-                               int(dfa['d1'][4])-int(int(dfa['d2'][4])-int(dfa['db1'][4])-(int(dfa['dbi'][4])+int(dfa['db2'][4]))),
-                               int(dfa['d1'][5])-int(int(dfa['d2'][5])-int(dfa['db1'][5])-(int(dfa['dbi'][5])+int(dfa['db2'][5]))),
-                               int(dfa['d1'][6])-int(int(dfa['d2'][6])-int(dfa['db1'][6])-(int(dfa['dbi'][6])+int(dfa['db2'][6]))),
-                               int(int(dfa['d1'][7])-int(int(dfa['d2'][7])-int(dfa['db1'][7])-(int(dfa['dbi'][7])+int(dfa['db2'][7])))) + int(int(dfa['d1'][8])-(int(dfa['d2'][8])-int(dfa['db1'][8])-(int(dfa['dbi'][8])+int(dfa['db2'][8]))))],
+            'data': [go.Bar(x=[int(dfa['d1'][0])-int(int(dfa['d2'][0])-int(dfa['db1'][0])-(int(dfa['db2'][0]))),
+                               int(dfa['d1'][1])-int(int(dfa['d2'][1])-int(dfa['db1'][1])-(int(dfa['db2'][1]))),
+                               int(dfa['d1'][2])-int(int(dfa['d2'][2])-int(dfa['db1'][2])-(int(dfa['db2'][2]))),
+                               int(dfa['d1'][3])-int(int(dfa['d2'][3])-int(dfa['db1'][3])-(int(dfa['db2'][3]))),
+                               int(dfa['d1'][4])-int(int(dfa['d2'][4])-int(dfa['db1'][4])-(int(dfa['db2'][4]))),
+                               int(dfa['d1'][5])-int(int(dfa['d2'][5])-int(dfa['db1'][5])-(int(dfa['db2'][5]))),
+                               int(dfa['d1'][6])-int(int(dfa['d2'][6])-int(dfa['db1'][6])-(int(dfa['db2'][6]))),
+                               int(int(dfa['d1'][7])-int(int(dfa['d2'][7])-int(dfa['db1'][7])-(int(dfa['db2'][7])))) + int(int(dfa['d1'][8])-(int(dfa['d2'][8])-int(dfa['db1'][8])-(int(dfa['db2'][8]))))],
                             y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
                             marker_color='#F5C05F',
                             name='Prima Dose'
                             ),
-                     go.Bar(x=[int(dfa['d2'][0])-int(dfa['db1'][0])-(int(dfa['dbi'][0])+int(dfa['db2'][0])),
-                               int(dfa['d2'][1])-int(dfa['db1'][1])-(int(dfa['dbi'][1])+int(dfa['db2'][1])),
-                               int(dfa['d2'][2])-int(dfa['db1'][2])-(int(dfa['dbi'][2])+int(dfa['db2'][2])),
-                               int(dfa['d2'][3])-int(dfa['db1'][3])-(int(dfa['dbi'][3])+int(dfa['db2'][3])),
-                               int(dfa['d2'][4])-int(dfa['db1'][4])-(int(dfa['dbi'][4])+int(dfa['db2'][4])),
-                               int(dfa['d2'][5])-int(dfa['db1'][5])-(int(dfa['dbi'][5])+int(dfa['db2'][5])),
-                               int(dfa['d2'][6])-int(dfa['db1'][6])-(int(dfa['dbi'][6])+int(dfa['db2'][6])),
-                               int(int(dfa['d2'][7])-int(dfa['db1'][7])-(int(dfa['dbi'][7])+int(dfa['db2'][7])))+int(int(dfa['d2'][8])-int(dfa['db1'][8])-(int(dfa['dbi'][8])+int(dfa['db2'][8])))],
+                     go.Bar(x=[int(dfa['d2'][0])-int(dfa['db1'][0])-(int(dfa['db2'][0])),
+                               int(dfa['d2'][1])-int(dfa['db1'][1])-(int(dfa['db2'][1])),
+                               int(dfa['d2'][2])-int(dfa['db1'][2])-(int(dfa['db2'][2])),
+                               int(dfa['d2'][3])-int(dfa['db1'][3])-(int(dfa['db2'][3])),
+                               int(dfa['d2'][4])-int(dfa['db1'][4])-(int(dfa['db2'][4])),
+                               int(dfa['d2'][5])-int(dfa['db1'][5])-(int(dfa['db2'][5])),
+                               int(dfa['d2'][6])-int(dfa['db1'][6])-(int(dfa['db2'][6])),
+                               int(int(dfa['d2'][7])-int(dfa['db1'][7])-(int(dfa['db2'][7])))+int(int(dfa['d2'][8])-int(dfa['db1'][8])-(int(dfa['db2'][8])))],
                             y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
                             marker_color='#E83A8E',
                             name='Seconda Dose'
                             ),
-                     go.Bar(x=[int(dfa['db1'][0]) - (int(dfa['dbi'][0]) + int(dfa['db2'][0])),
-                               int(dfa['db1'][1]) - (int(dfa['dbi'][1]) + int(dfa['db2'][1])),
-                               int(dfa['db1'][2]) - (int(dfa['dbi'][2]) + int(dfa['db2'][2])),
-                               int(dfa['db1'][3]) - (int(dfa['dbi'][3]) + int(dfa['db2'][3])),
-                               int(dfa['db1'][4]) - (int(dfa['dbi'][4]) + int(dfa['db2'][4])),
-                               int(dfa['db1'][5]) - (int(dfa['dbi'][5]) + int(dfa['db2'][5])),
-                               int(dfa['db1'][6]) - (int(dfa['dbi'][6]) + int(dfa['db2'][6])),
-                               int(int(dfa['db1'][7]) - (int(dfa['dbi'][7]) + int(dfa['db2'][7]))) + int(int(dfa['db1'][8]) - (int(dfa['dbi'][8]) + int(dfa['db2'][8])))],
+                     go.Bar(x=[int(dfa['db1'][0]) - (int(dfa['db2'][0])),
+                               int(dfa['db1'][1]) - (int(dfa['db2'][1])),
+                               int(dfa['db1'][2]) - (int(dfa['db2'][2])),
+                               int(dfa['db1'][3]) - (int(dfa['db2'][3])),
+                               int(dfa['db1'][4]) - (int(dfa['db2'][4])),
+                               int(dfa['db1'][5]) - (int(dfa['db2'][5])),
+                               int(dfa['db1'][6]) - (int(dfa['db2'][6])),
+                               int(int(dfa['db1'][7]) - (int(dfa['db2'][7]))) + int(int(dfa['db1'][8]) - (int(dfa['db2'][8])))],
                             y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
                             marker_color='#B768FE',
                             name='Terza Dose'
                             ),
 
-                     go.Bar(x=[int(dfa['dbi'][0]) + int(dfa['db2'][0]),
-                               int(dfa['dbi'][1]) + int(dfa['db2'][1]),
-                               int(dfa['dbi'][2]) + int(dfa['db2'][2]),
-                               int(dfa['dbi'][3]) + int(dfa['db2'][3]),
-                               int(dfa['dbi'][4]) + int(dfa['db2'][4]),
-                               int(dfa['dbi'][5]) + int(dfa['db2'][5]),
-                               int(dfa['dbi'][6]) + int(dfa['db2'][6]),
-                               int(int(dfa['dbi'][7]) + int(dfa['db2'][7]))+int(int(dfa['dbi'][8]) + int(dfa['db2'][8]))],
+                     go.Bar(x=[int(dfa['db2'][0]),
+                               int(dfa['db2'][1]),
+                               int(dfa['db2'][2]),
+                               int(dfa['db2'][3]),
+                               int(dfa['db2'][4]),
+                               int(dfa['db2'][5]),
+                               int(dfa['db2'][6]),
+                               int(int(dfa['db2'][7]))+int(int(dfa['db2'][8]))],
                             y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
                             marker_color='#5B3EAB',
@@ -837,54 +827,54 @@ def vaccine_age_bar(regione):
         dfa1 = reg_ds1.copy().groupby('eta').agg({'d1': 'sum', 'd2': 'sum', 'db1': 'sum'}).reset_index()
         reg_dfe1 = dfe1.loc[dfe1['reg'] == reg]
         figure_age = {
-            'data': [go.Bar(x=[int(dfa1['d1'][0])-int(int(dfa1['d2'][0])-int(dfa1['db1'][0])-(int(dfa1['dbi'][0])+int(dfa1['db2'][0]))),
-                               int(dfa1['d1'][1])-int(int(dfa1['d2'][1])-int(dfa1['db1'][1])-(int(dfa1['dbi'][1])+int(dfa1['db2'][1]))),
-                               int(dfa1['d1'][2])-int(int(dfa1['d2'][2])-int(dfa1['db1'][2])-(int(dfa1['dbi'][2])+int(dfa1['db2'][2]))),
-                               int(dfa1['d1'][3])-int(int(dfa1['d2'][3])-int(dfa1['db1'][3])-(int(dfa1['dbi'][3])+int(dfa1['db2'][3]))),
-                               int(dfa1['d1'][4])-int(int(dfa1['d2'][4])-int(dfa1['db1'][4])-(int(dfa1['dbi'][4])+int(dfa1['db2'][4]))),
-                               int(dfa1['d1'][5])-int(int(dfa1['d2'][5])-int(dfa1['db1'][5])-(int(dfa1['dbi'][5])+int(dfa1['db2'][5]))),
-                               int(dfa1['d1'][6])-int(int(dfa1['d2'][6])-int(dfa1['db1'][6])-(int(dfa1['dbi'][6])+int(dfa1['db2'][6]))),
-                               int(int(dfa1['d1'][7])-int(int(dfa1['d2'][7])-int(dfa1['db1'][7])-(int(dfa1['dbi'][7])+int(dfa1['db2'][7])))) + int(int(dfa1['d1'][8])-(int(dfa1['d2'][8])-int(dfa1['db1'][8])-(int(dfa1['dbi'][8])+int(dfa1['db2'][8]))))],
+            'data': [go.Bar(x=[int(dfa1['d1'][0])-int(int(dfa1['d2'][0])-int(dfa1['db1'][0])-(int(dfa1['db2'][0]))),
+                               int(dfa1['d1'][1])-int(int(dfa1['d2'][1])-int(dfa1['db1'][1])-(int(dfa1['db2'][1]))),
+                               int(dfa1['d1'][2])-int(int(dfa1['d2'][2])-int(dfa1['db1'][2])-(int(dfa1['db2'][2]))),
+                               int(dfa1['d1'][3])-int(int(dfa1['d2'][3])-int(dfa1['db1'][3])-(int(dfa1['db2'][3]))),
+                               int(dfa1['d1'][4])-int(int(dfa1['d2'][4])-int(dfa1['db1'][4])-(int(dfa1['db2'][4]))),
+                               int(dfa1['d1'][5])-int(int(dfa1['d2'][5])-int(dfa1['db1'][5])-(int(dfa1['db2'][5]))),
+                               int(dfa1['d1'][6])-int(int(dfa1['d2'][6])-int(dfa1['db1'][6])-(int(dfa1['db2'][6]))),
+                               int(int(dfa1['d1'][7])-int(int(dfa1['d2'][7])-int(dfa1['db1'][7])-(int(dfa1['db2'][7])))) + int(int(dfa1['d1'][8])-(int(dfa1['d2'][8])-int(dfa1['db1'][8])-(int(dfa1['db2'][8]))))],
                             y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
                             marker_color='#F5C05F',
                             name='Prima Dose'
                             ),
-                     go.Bar(x=[int(dfa1['d2'][0])-int(dfa1['db1'][0])-(int(dfa1['dbi'][0])+int(dfa1['db2'][0])),
-                               int(dfa1['d2'][1])-int(dfa1['db1'][1])-(int(dfa1['dbi'][1])+int(dfa1['db2'][1])),
-                               int(dfa1['d2'][2])-int(dfa1['db1'][2])-(int(dfa1['dbi'][2])+int(dfa1['db2'][2])),
-                               int(dfa1['d2'][3])-int(dfa1['db1'][3])-(int(dfa1['dbi'][3])+int(dfa1['db2'][3])),
-                               int(dfa1['d2'][4])-int(dfa1['db1'][4])-(int(dfa1['dbi'][4])+int(dfa1['db2'][4])),
-                               int(dfa1['d2'][5])-int(dfa1['db1'][5])-(int(dfa1['dbi'][5])+int(dfa1['db2'][5])),
-                               int(dfa1['d2'][6])-int(dfa1['db1'][6])-(int(dfa1['dbi'][6])+int(dfa1['db2'][6])),
-                               int(int(dfa1['d2'][7])-int(dfa1['db1'][7])-(int(dfa1['dbi'][7])+int(dfa1['db2'][7])))+int(int(dfa1['d2'][8])-int(dfa1['db1'][8])-(int(dfa1['dbi'][8])+int(dfa1['db2'][8])))],
+                     go.Bar(x=[int(dfa1['d2'][0])-int(dfa1['db1'][0])-(int(dfa1['db2'][0])),
+                               int(dfa1['d2'][1])-int(dfa1['db1'][1])-(int(dfa1['db2'][1])),
+                               int(dfa1['d2'][2])-int(dfa1['db1'][2])-(int(dfa1['db2'][2])),
+                               int(dfa1['d2'][3])-int(dfa1['db1'][3])-(int(dfa1['db2'][3])),
+                               int(dfa1['d2'][4])-int(dfa1['db1'][4])-(int(dfa1['db2'][4])),
+                               int(dfa1['d2'][5])-int(dfa1['db1'][5])-(int(dfa1['db2'][5])),
+                               int(dfa1['d2'][6])-int(dfa1['db1'][6])-(int(dfa1['db2'][6])),
+                               int(int(dfa1['d2'][7])-int(dfa1['db1'][7])-(int(dfa1['db2'][7])))+int(int(dfa1['d2'][8])-int(dfa1['db1'][8])-(int(dfa1['db2'][8])))],
                             y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
                             marker_color='#E83A8E',
                             name='Seconda Dose'
                             ),
-                     go.Bar(x=[int(dfa1['db1'][0]) - (int(dfa1['dbi'][0]) + int(dfa1['db2'][0])),
-                               int(dfa1['db1'][1]) - (int(dfa1['dbi'][1]) + int(dfa1['db2'][1])),
-                               int(dfa1['db1'][2]) - (int(dfa1['dbi'][2]) + int(dfa1['db2'][2])),
-                               int(dfa1['db1'][3]) - (int(dfa1['dbi'][3]) + int(dfa1['db2'][3])),
-                               int(dfa1['db1'][4]) - (int(dfa1['dbi'][4]) + int(dfa1['db2'][4])),
-                               int(dfa1['db1'][5]) - (int(dfa1['dbi'][5]) + int(dfa1['db2'][5])),
-                               int(dfa1['db1'][6]) - (int(dfa1['dbi'][6]) + int(dfa1['db2'][6])),
-                               int(int(dfa1['db1'][7]) - (int(dfa1['dbi'][7]) + int(dfa1['db2'][7]))) + int(int(dfa1['db1'][8]) - (int(dfa1['dbi'][8]) + int(dfa1['db2'][8])))],
+                     go.Bar(x=[int(dfa1['db1'][0]) - (int(dfa1['db2'][0])),
+                               int(dfa1['db1'][1]) - (int(dfa1['db2'][1])),
+                               int(dfa1['db1'][2]) - (int(dfa1['db2'][2])),
+                               int(dfa1['db1'][3]) - (int(dfa1['db2'][3])),
+                               int(dfa1['db1'][4]) - (int(dfa1['db2'][4])),
+                               int(dfa1['db1'][5]) - (int(dfa1['db2'][5])),
+                               int(dfa1['db1'][6]) - (int(dfa1['db2'][6])),
+                               int(int(dfa1['db1'][7]) - (int(dfa1['db2'][7]))) + int(int(dfa1['db1'][8]) - (int(dfa1['db2'][8])))],
                             y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
                             marker_color='#B768FE',
                             name='Terza Dose'
                             ),
 
-                     go.Bar(x=[int(dfa1['dbi'][0]) + int(dfa1['db2'][0]),
-                               int(dfa1['dbi'][1]) + int(dfa1['db2'][1]),
-                               int(dfa1['dbi'][2]) + int(dfa1['db2'][2]),
-                               int(dfa1['dbi'][3]) + int(dfa1['db2'][3]),
-                               int(dfa1['dbi'][4]) + int(dfa1['db2'][4]),
-                               int(dfa1['dbi'][5]) + int(dfa1['db2'][5]),
-                               int(dfa1['dbi'][6]) + int(dfa1['db2'][6]),
-                               int(int(dfa1['dbi'][7]) + int(dfa1['db2'][7]))+int(int(dfa1['dbi'][8]) + int(dfa1['db2'][8]))],
+                     go.Bar(x=[int(dfa1['db2'][0]),
+                               int(dfa1['db2'][1]),
+                               int(dfa1['db2'][2]),
+                               int(dfa1['db2'][3]),
+                               int(dfa1['db2'][4]),
+                               int(dfa1['db2'][5]),
+                               int(dfa1['db2'][6]),
+                               int(int(dfa1['db2'][7]))+int(int(dfa1['db2'][8]))],
                             y=['12-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+'],
                             orientation='h',
                             marker_color='#5B3EAB',
@@ -937,9 +927,7 @@ def previsione():
     month_prima = ds_dosi.loc[ds_dosi['data'].between(str(ora - relativedelta(months=1))[:10], str(ora)[:10]), ['d1']].sum()
     month_seconda = ds_dosi.loc[ds_dosi['data'].between(str(ora - relativedelta(months=1))[:10], str(ora)[:10]), ['d2']].sum()
     month_terza = ds_dosi.loc[ds_dosi['data'].between(str(ora - relativedelta(months=1))[:10], str(ora)[:10]), ['db1']].sum()
-    month_quarta_i = ds_dosi.loc[ds_dosi['data'].between(str(ora - relativedelta(months=1))[:10], str(ora)[:10]), ['dbi']].sum()
-    month_quarta_b = ds_dosi.loc[ds_dosi['data'].between(str(ora - relativedelta(months=1))[:10], str(ora)[:10]), ['db2']].sum()
-    month_quarta = int(month_quarta_i) + int(month_quarta_b)
+    month_quarta = int(ds_dosi.loc[ds_dosi['data'].between(str(ora - relativedelta(months=1))[:10], str(ora)[:10]), ['db2']].sum())
     month_day_passati = (ora - (ora - relativedelta(months=1))).days
     # first
     month_day_p = ((60360000 - int(tot_prima)) / int(month_prima)) * month_day_passati
@@ -973,10 +961,10 @@ def previsione():
                         figure={
                             'data': [
                                 go.Bar(x=ds_dosi['data'],
-                                       y=(((ds_dosi['dbi'].cumsum()) / 60360000) + ((ds_dosi['db2'].cumsum()) / 60360000)),
+                                       y=((ds_dosi['db2'].cumsum()) / 60360000),
                                        name='Incremento Quarte Dosi', marker=dict(color='#5B3EAB')),
                                 go.Bar(x=ds_dosi['data'],
-                                       y=(((ds_dosi['db1'].cumsum()) / 60360000) - (((ds_dosi['dbi'].cumsum()) / 60360000) + ((ds_dosi['db2'].cumsum()) / 60360000))),
+                                       y=(((ds_dosi['db1'].cumsum()) / 60360000) - ((ds_dosi['db2'].cumsum()) / 60360000)),
                                        name='Incremento Terze Dosi', marker=dict(color='#B768FE')),
                                 go.Bar(x=ds_dosi['data'],
                                        y=((ds_dosi['d2'].cumsum()) / 60360000) - ((ds_dosi['db1'].cumsum()) / 60360000),
@@ -1075,11 +1063,11 @@ def velocity_dosi_graph(regione):
         regione = [regione]
     for reg in regione:
         ds2 = ds1[ds1['reg'] == reg]
-        ds_dosi_velocity = ds2.groupby('data').agg({'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'dbi': 'sum', 'db2': 'sum', 'reg': 'last'}).reset_index()
+        ds_dosi_velocity = ds2.groupby('data').agg({'d1': 'sum', 'd2': 'sum', 'db1': 'sum', 'db2': 'sum', 'reg': 'last'}).reset_index()
         data.append(ds_dosi_velocity)
     data.pop(0)
     for dati in data:
-        traces.append(go.Scatter({'x': dati['data'], 'y': dati['d1']+dati['d2']+dati['db1']+dati['dbi']+dati['db2'], 'mode': 'lines',
+        traces.append(go.Scatter({'x': dati['data'], 'y': dati['d1']+dati['d2']+dati['db1']+dati['db2'], 'mode': 'lines',
                                   'name': f"{dati['reg'].iloc[0]}"}))
     traces.pop(0)
 
